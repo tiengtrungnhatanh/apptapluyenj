@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Iron Ledger — Nhật ký tập</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5DA9F6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Iron Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#F7FAFD; --surface:#FFFFFF; --raised:#F4F7FA;
+    --border:#E8EEF5; --border-soft:#EEF6FF;
+    --text:#111827; --text-dim:#6B7280; --text-faint:#9AA8B6;
+    --accent:#5DA9F6; --accent-dim:#A9D5FF; --accent-soft:#DCEEFF; --accent-deep:#2E6FD1;
+    --success:#6FD19C; --warning:#FFB870; --danger:#FF8A95;
+    --hero-a:#6FB6FA; --hero-b:#3E7FE6;
+    --nav-glass:rgba(255,255,255,0.88);
+    --pill-text:#1D4ED8;
+    color-scheme:light;
+  }
+  html[data-theme="dark"]{
+    --bg:#10161D; --surface:#18212B; --raised:#202C38;
+    --border:#273544; --border-soft:#233040;
+    --text:#F7FAFC; --text-dim:#9AA8B6; --text-faint:#6B7A8A;
+    --accent:#72B9FF; --accent-dim:#3A5A82; --accent-soft:rgba(114,185,255,0.16); --accent-deep:#9CCBFF;
+    --success:#6FD19C; --warning:#FFB870; --danger:#FF8A95;
+    --hero-a:#4C8DFF; --hero-b:#2A5BC7;
+    --nav-glass:rgba(24,33,43,0.86);
+    --pill-text:#1D4ED8;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);touch-action:manipulation;}
+  button{touch-action:manipulation;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:var(--text);
+    transition:background 200ms ease, color 200ms ease;
+  }
+  button,input{font-family:inherit;}
+  button{cursor:pointer;}
+  .mono{font-family:ui-monospace,'SF Mono','Menlo',monospace;font-variant-numeric:tabular-nums;}
+  .frame{width:100%;max-width:480px;height:100vh;max-height:900px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;}
+  .screen{height:100%;position:relative;}
+  .scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .header{padding:20px 20px 16px;display:flex;align-items:flex-end;justify-content:space-between;}
+  .header-title{font-size:26px;font-weight:800;letter-spacing:-0.02em;color:var(--text);}
+  .header-subtitle{font-size:13px;color:var(--text-dim);margin-top:2px;}
+  .section-label{font-size:12px;font-weight:700;color:var(--text-dim);letter-spacing:0.03em;margin-bottom:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:0 1px 2px rgba(17,24,39,0.03), 0 8px 20px -12px rgba(17,24,39,0.10);}
+  .card + .card{margin-top:10px;}
+  .clickable{cursor:pointer;}
+  .input{width:100%;padding:12px 14px;border-radius:14px;background:var(--raised);border:1px solid var(--border);color:var(--text);font-size:15px;outline:none;transition:border-color 180ms ease, box-shadow 180ms ease;}
+  .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .btn-primary{width:100%;min-height:52px;padding:14px 18px;border-radius:16px;border:none;background:var(--accent);color:#FFFFFF;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 180ms ease, transform 150ms ease;}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-primary:disabled{background:var(--border);color:var(--text-faint);opacity:.7;cursor:default;}
+  .dashed-btn{width:100%;padding:14px;border-radius:16px;margin-top:8px;border:1.5px dashed var(--accent-dim);background:var(--border-soft);color:var(--accent-deep);font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .link-btn{font-size:13px;color:var(--accent-deep);background:none;border:none;font-weight:600;padding:4px 0;}
+  .link-btn.faint{color:var(--text-faint);font-weight:400;}
+  .icon-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:transparent;border:none;color:var(--text-dim);font-size:16px;transition:background 150ms ease;}
+  .icon-btn.danger{color:var(--danger);}
+  .icon-btn.accent{color:var(--accent-deep);}
+  .set-row{display:grid;grid-template-columns:24px 1fr 1fr 30px;gap:8px;align-items:center;margin-bottom:6px;}
+  .set-input{width:100%;padding:9px 8px;border-radius:12px;background:var(--raised);border:1px solid var(--border);color:var(--text);font-size:15px;text-align:center;outline:none;font-family:ui-monospace,monospace;transition:border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;}
+  .set-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .set-input.done{border-color:var(--accent-dim);background:var(--accent-soft);}
+  .set-check{width:44px;height:44px;border-radius:12px;border:none;background:var(--raised);color:var(--text-faint);display:flex;align-items:center;justify-content:center;font-size:17px;touch-action:manipulation;transition:background 180ms ease, color 180ms ease;}
+  .set-check.done{background:var(--accent);color:#FFFFFF;}
+  .plate-stack{display:flex;gap:4px;}
+  .plate{width:16px;height:5px;border-radius:2px;background:var(--border);}
+  .plate.filled{background:var(--accent);}
+  .bottom-nav{position:absolute;bottom:0;left:0;right:0;display:flex;background:var(--surface);border-top:1px solid var(--border);padding:8px 8px calc(8px + env(safe-area-inset-bottom));}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:6px 0;color:var(--text-faint);}
+  .nav-item.active{color:var(--accent-deep);}
+  .nav-icon{font-size:18px;}
+  .nav-label{font-size:10.5px;font-weight:500;}
+  .nav-item.active .nav-label{font-weight:700;}
+  .chip{padding:8px 14px;border-radius:20px;white-space:nowrap;background:var(--border-soft);color:var(--text-dim);border:none;font-size:13px;font-weight:600;flex:none;}
+  .chip.active{background:var(--accent);color:#FFFFFF;}
+  .stat-row{display:flex;gap:10px;margin-bottom:16px;}
+  .stat-card{padding:14px 12px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:18px;text-align:center;box-shadow:0 1px 2px rgba(17,24,39,0.03), 0 6px 14px -10px rgba(17,24,39,0.10);}
+  .stat-label{font-size:10.5px;color:var(--text-dim);margin-bottom:6px;font-weight:700;letter-spacing:0.03em;}
+  .stat-value{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .overlay{position:fixed;inset:0;background:rgba(17,24,39,0.45);display:flex;align-items:flex-end;z-index:50;}
+  .sheet{background:var(--bg);width:100%;max-width:480px;margin:0 auto;border-radius:24px 24px 0 0;display:flex;flex-direction:column;border:1px solid var(--border);border-bottom:none;max-height:82vh;}
+  .picker-item{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-radius:14px;background:var(--raised);border:1px solid transparent;color:var(--text);font-size:14.5px;font-weight:500;text-align:left;width:100%;margin-bottom:6px;}
+  .picker-item.picked{background:var(--accent-soft);border-color:var(--accent-dim);color:var(--accent-deep);}
+  .btn-accent-small{padding:0 18px;border-radius:14px;border:none;background:var(--accent);color:#FFFFFF;font-weight:700;font-size:14px;}
+  .detail-overlay{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
+  .empty{text-align:center;padding:56px 24px;color:var(--text-dim);}
+  .empty-icon{width:52px;height:52px;border-radius:16px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:22px;}
+  .empty-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .empty-sub{font-size:13px;line-height:1.5;}
+  .mini-btn{width:26px;height:26px;border-radius:8px;background:var(--raised);border:none;color:var(--text-dim);}
+  .mode-toggle{display:flex;gap:6px;margin-bottom:10px;}
+  .mode-btn{padding:6px 11px;border-radius:10px;background:var(--raised);border:none;color:var(--text-dim);font-size:11.5px;font-weight:600;}
+  .mode-btn.active{background:var(--accent);color:#FFFFFF;}
+
+  /* Hero card + day strip */
+  .hero-card{background:linear-gradient(160deg, var(--hero-a) 0%, var(--hero-b) 100%);border-radius:24px;margin:16px 20px 0;padding:20px 18px 18px;color:#fff;box-shadow:0 16px 28px -14px rgba(62,127,230,0.55);}
+  .day-strip{display:flex;justify-content:space-between;margin-bottom:16px;}
+  .day-item{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;opacity:.78;width:30px;}
+  .day-item.today{opacity:1;}
+  .day-weekday{font-size:10px;text-transform:uppercase;letter-spacing:0.04em;}
+  .day-num{font-size:14px;font-weight:600;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+  .day-item.today .day-num{background:rgba(255,255,255,0.3);font-weight:800;}
+  .day-dot{width:4px;height:4px;border-radius:50%;background:#fff;margin-top:1px;}
+  .segmented{display:inline-flex;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px;margin-bottom:18px;}
+  .segmented-option{border:none;background:none;color:rgba(255,255,255,0.8);font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:16px;}
+  .segmented-option.active{background:#fff;color:var(--pill-text);}
+  .hero-big{font-size:40px;font-weight:800;letter-spacing:-0.02em;line-height:1.15;font-variant-numeric:tabular-nums;}
+  .hero-big-label{font-size:13px;opacity:.9;margin-top:6px;}
+
+  /* Light-blue highlight card (entered data / important stat) */
+  .pastel-card{border-radius:18px;padding:14px;background:var(--accent-soft);color:var(--accent-deep);}
+
+  /* Info cards */
+  .info-card-row{display:flex;gap:10px;padding:20px 20px 0;}
+  .info-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(17,24,39,0.03), 0 6px 14px -10px rgba(17,24,39,0.10);}
+  .info-card-label{font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600;}
+  .info-card-value{font-size:16px;font-weight:800;color:var(--text);line-height:1.25;}
+  .info-card-foot{font-size:11.5px;color:var(--text-faint);margin-top:6px;}
+
+  /* Bottom nav + FAB */
+  .bottom-nav-wrap{position:absolute;bottom:0;left:0;right:0;}
+  .bottom-nav{display:flex;align-items:center;background:var(--nav-glass);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);border-top:1px solid var(--border);border-radius:24px 24px 0 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(17,24,39,0.05);position:relative;}
+  .nav-items-wrap{display:flex;flex:1;padding-right:54px;}
+  .fab{position:absolute;right:18px;top:-22px;width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:400;box-shadow:0 10px 20px -4px rgba(93,169,246,0.55);}
+  .theme-toggle{width:38px;height:38px;border-radius:12px;background:var(--raised);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;transition:background 200ms ease;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============ CONFIG & STATE ============ */
+const STORAGE_KEY = "iron-ledger-data";
+const DEFAULT_EXERCISES = [
+  { id: "e_machine_press", name: "Machine Press", group: "Đẩy" },
+  { id: "e_bench_press", name: "Đẩy ngực Barbell", group: "Đẩy" },
+  { id: "e_incline_bench", name: "Đẩy ngực Incline", group: "Đẩy" },
+  { id: "e_cable_fly", name: "Cable Fly", group: "Đẩy" },
+  { id: "e_dip", name: "Dip", group: "Đẩy" },
+  { id: "e_pushup", name: "Push-up", group: "Đẩy" },
+  { id: "e_overhead_press", name: "Overhead Press", group: "Đẩy" },
+  { id: "e_shoulder_press", name: "Shoulder Press máy", group: "Đẩy" },
+  { id: "e_lateral_raise", name: "Lateral Raise", group: "Đẩy" },
+  { id: "e_tricep_pushdown", name: "Tricep Pushdown", group: "Đẩy" },
+
+  { id: "e_barbell_row", name: "Barbell Row", group: "Kéo" },
+  { id: "e_pullup", name: "Pull-up", group: "Kéo" },
+  { id: "e_chinup", name: "Chin-up", group: "Kéo" },
+  { id: "e_lat_pulldown", name: "Lat Pulldown", group: "Kéo" },
+  { id: "e_seated_row", name: "Seated Cable Row", group: "Kéo" },
+  { id: "e_deadlift", name: "Deadlift", group: "Kéo" },
+  { id: "e_face_pull", name: "Face Pull", group: "Kéo" },
+  { id: "e_bicep_curl", name: "Bicep Curl", group: "Kéo" },
+  { id: "e_hammer_curl", name: "Hammer Curl", group: "Kéo" },
+
+  { id: "e_squat", name: "Squat", group: "Chân" },
+  { id: "e_leg_press", name: "Leg Press", group: "Chân" },
+  { id: "e_leg_curl", name: "Leg Curl", group: "Chân" },
+  { id: "e_leg_extension", name: "Leg Extension", group: "Chân" },
+  { id: "e_lunges", name: "Lunges", group: "Chân" },
+  { id: "e_calf_raise", name: "Calf Raise", group: "Chân" },
+  { id: "e_hip_thrust", name: "Hip Thrust", group: "Chân" },
+
+  { id: "e_floor_wiper", name: "Floor Wiper", group: "Core" },
+  { id: "e_plank", name: "Plank", group: "Core" },
+  { id: "e_hanging_leg_raise", name: "Hanging Leg Raise", group: "Core" },
+  { id: "e_cable_crunch", name: "Cable Crunch", group: "Core" },
+
+  { id: "e_swim", name: "Bơi (25m pool)", group: "Cardio", type: "cardio" },
+  { id: "e_treadmill", name: "Chạy bộ Treadmill", group: "Cardio", type: "cardio" },
+  { id: "e_cycling", name: "Đạp xe", group: "Cardio", type: "cardio" },
+  { id: "e_rowing", name: "Rowing Machine", group: "Cardio", type: "cardio" },
+  { id: "e_jump_rope", name: "Nhảy dây", group: "Cardio", type: "cardio" },
+  { id: "e_pickleball", name: "Pickleball", group: "Cardio", type: "cardio" },
+
+  { id: "e_machine_chest_press", name: "Machine Chest Press", group: "Đẩy" },
+  { id: "e_machine_shoulder_press", name: "Machine Shoulder Press", group: "Đẩy" },
+  { id: "e_cable_lateral_raise", name: "Cable Lateral Raise", group: "Đẩy" },
+  { id: "e_overhead_cable_triceps", name: "Overhead Cable Triceps Extension", group: "Đẩy" },
+  { id: "e_smith_incline_bench", name: "Smith Incline Bench Press", group: "Đẩy" },
+  { id: "e_rope_triceps_pushdown", name: "Rope Triceps Pushdown", group: "Đẩy" },
+  { id: "e_chest_supported_row", name: "Chest-Supported Row", group: "Kéo" },
+  { id: "e_lat_pulldown_wide", name: "Wide/Medium-Grip Lat Pulldown", group: "Kéo" },
+  { id: "e_lat_pulldown_neutral", name: "Neutral/Close-Grip Lat Pulldown", group: "Kéo" },
+  { id: "e_reverse_pec_deck", name: "Reverse Pec Deck", group: "Kéo" },
+  { id: "e_preacher_curl", name: "Preacher/Machine Curl", group: "Kéo" },
+  { id: "e_lying_leg_curl", name: "Lying Leg Curl", group: "Chân" },
+  { id: "e_seated_leg_curl", name: "Seated Leg Curl", group: "Chân" },
+  { id: "e_hip_adduction", name: "Hip Adduction Machine", group: "Chân" },
+  { id: "e_hip_abduction", name: "Hip Abduction Machine", group: "Chân" },
+  { id: "e_leg_press_high", name: "Leg Press – High Foot Placement", group: "Chân" },
+  { id: "e_back_extension_glute", name: "45° Back Extension – Glute Bias", group: "Chân" },
+  { id: "e_pallof_press", name: "Pallof Press", group: "Core" },
+];
+
+const SEED_KEY = "iron-ledger-seeded-plan-v1";
+const SEED_ROUTINES = [
+  { id: "r_day1_push", name: "DAY 1 – PUSH", exercises: [
+    { exerciseId: "e_machine_chest_press", name: "Machine Chest Press", targetSets: 4, repRange: "6–10" },
+    { exerciseId: "e_machine_shoulder_press", name: "Machine Shoulder Press", targetSets: 3, repRange: "6–10" },
+    { exerciseId: "e_dip", name: "Dip", targetSets: 3, repRange: "6–10" },
+    { exerciseId: "e_cable_lateral_raise", name: "Cable Lateral Raise", targetSets: 3, repRange: "12–20" },
+    { exerciseId: "e_overhead_cable_triceps", name: "Overhead Cable Triceps Extension", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_chest_supported_row", name: "Chest-Supported Row", targetSets: 3, repRange: "8–12" },
+  ]},
+  { id: "r_day2_pull", name: "DAY 2 – PULL", exercises: [
+    { exerciseId: "e_lat_pulldown_wide", name: "Wide/Medium-Grip Lat Pulldown", targetSets: 4, repRange: "6–10" },
+    { exerciseId: "e_seated_row", name: "Seated Cable/Machine Row", targetSets: 4, repRange: "6–10" },
+    { exerciseId: "e_smith_incline_bench", name: "Smith Incline Bench Press", targetSets: 3, repRange: "8–10" },
+    { exerciseId: "e_lat_pulldown_neutral", name: "Neutral/Close-Grip Lat Pulldown", targetSets: 3, repRange: "8–12" },
+    { exerciseId: "e_reverse_pec_deck", name: "Reverse Pec Deck", targetSets: 3, repRange: "12–20" },
+    { exerciseId: "e_preacher_curl", name: "Preacher/Machine Curl", targetSets: 3, repRange: "8–12" },
+  ]},
+  { id: "r_day3_legs_quad", name: "DAY 3 – LEGS (QUAD BIAS)", exercises: [
+    { exerciseId: "e_squat", name: "Squat", targetSets: 3, repRange: "6–10" },
+    { exerciseId: "e_leg_press", name: "Leg Press", targetSets: 3, repRange: "10–12" },
+    { exerciseId: "e_leg_extension", name: "Leg Extension", targetSets: 3, repRange: "12–15" },
+    { exerciseId: "e_lying_leg_curl", name: "Lying Leg Curl", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_hip_adduction", name: "Hip Adduction Machine", targetSets: 2, repRange: "12–20" },
+    { exerciseId: "e_calf_raise", name: "Calf Raise", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_cable_crunch", name: "Cable Crunch", targetSets: 3, repRange: "10–15" },
+  ]},
+  { id: "r_day4_upper", name: "DAY 4 – UPPER", exercises: [
+    { exerciseId: "e_smith_incline_bench", name: "Smith Incline Bench Press", targetSets: 3, repRange: "8–10" },
+    { exerciseId: "e_chest_supported_row", name: "Chest-Supported Row", targetSets: 3, repRange: "8–10" },
+    { exerciseId: "e_lat_pulldown_neutral", name: "Neutral-Grip Lat Pulldown", targetSets: 2, repRange: "10–12" },
+    { exerciseId: "e_cable_lateral_raise", name: "Cable Lateral Raise", targetSets: 4, repRange: "12–20" },
+    { exerciseId: "e_reverse_pec_deck", name: "Reverse Pec Deck", targetSets: 3, repRange: "12–20" },
+    { exerciseId: "e_rope_triceps_pushdown", name: "Rope Triceps Pushdown", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_preacher_curl", name: "Preacher/Machine Curl", targetSets: 3, repRange: "10–15" },
+  ]},
+  { id: "r_day5_lower", name: "DAY 5 – LOWER (GLUTE/HAMSTRING BIAS)", exercises: [
+    { exerciseId: "e_hip_thrust", name: "Barbell/Smith Hip Thrust", targetSets: 3, repRange: "6–10" },
+    { exerciseId: "e_seated_leg_curl", name: "Seated Leg Curl", targetSets: 4, repRange: "8–12" },
+    { exerciseId: "e_leg_press_high", name: "Leg Press – High Foot Placement", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_back_extension_glute", name: "45° Back Extension – Glute Bias", targetSets: 2, repRange: "10–15" },
+    { exerciseId: "e_hip_abduction", name: "Hip Abduction Machine", targetSets: 3, repRange: "12–20" },
+    { exerciseId: "e_calf_raise", name: "Calf Raise", targetSets: 3, repRange: "10–15" },
+    { exerciseId: "e_pallof_press", name: "Pallof Press", targetSets: 3, repRange: "10–15/side" },
+  ]},
+];
+
+let state = {
+  loaded: false,
+  exercises: [],
+  routines: [],
+  workouts: [],
+  tab: "log",
+  activeSession: null,
+  viewingWorkoutId: null,
+  picker: null,
+  editingRoutine: null,
+  progressSelectedId: null,
+  heroMetric: "next",
+  theme: "light",
+};
+
+/* ============ HELPERS ============ */
+const uid = (p) => p + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const fmtDate = (d) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+const fmtDateShort = (d) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+const todayGreeting = () => new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
+function esc(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function formatElapsed(ms) {
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  return mm + ":" + ss;
+}
+function getLastWorkout() {
+  if (state.workouts.length === 0) return null;
+  return [...state.workouts].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+}
+function countDoneSets(w) {
+  return w.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
+}
+function summarizeExercise(e) {
+  const mode = e.mode || "strength";
+  const items = (e.sets || []).filter((s) => s.done).map((s) => {
+    if (mode === "strength") return (s.weight || "0") + "kg×" + (s.reps || "0");
+    if (mode === "cardio") {
+      const parts = [];
+      if (s.duration) parts.push(s.duration + "p");
+      if (s.distance) parts.push(s.distance + "km");
+      if (s.calories) parts.push(s.calories + "kcal");
+      return parts.length ? parts.join(" ") : "—";
+    }
+    return (s.value || "—") + (e.customUnit ? " " + e.customUnit : "");
+  });
+  return esc(e.name) + (items.length ? ": " + items.map((i) => esc(i)).join(", ") : "");
+}
+function workoutVolume(w) {
+  return w.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).reduce((b, s) => b + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0), 0);
+}
+function emptySetForMode(mode) {
+  if (mode === "cardio") return { duration: "", distance: "", calories: "", done: false };
+  if (mode === "custom") return { value: "", done: false };
+  return { weight: "", reps: "", done: false };
+}
+function defaultModeForExercise(exerciseId) {
+  const ex = state.exercises.find((e) => e.id === exerciseId);
+  return ex && ex.group === "Cardio" ? "cardio" : "strength";
+}
+function getPrevBest() {
+  const map = {};
+  [...state.workouts].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((w) => {
+    w.exercises.forEach((e) => {
+      const done = e.sets.filter((s) => s.done && s.weight);
+      if (done.length === 0) return;
+      const top = done.reduce((best, s) => (Number(s.weight) > Number(best.weight) ? s : best), done[0]);
+      map[e.exerciseId] = { weight: top.weight, reps: top.reps };
+    });
+  });
+  return map;
+}
+const VI_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+function getDayStrip() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    days.push({
+      date: dateStr,
+      dayNum: d.getDate(),
+      weekday: VI_WEEKDAY[d.getDay()],
+      isToday: i === 0,
+      hasWorkout: state.workouts.some((w) => w.date === dateStr),
+    });
+  }
+  return days;
+}
+function getWeekStats() {
+  const dateSet = new Set(getDayStrip().map((d) => d.date));
+  const weekWorkouts = state.workouts.filter((w) => dateSet.has(w.date));
+  return {
+    sessions: weekWorkouts.length,
+    totalVolume: weekWorkouts.reduce((a, w) => a + workoutVolume(w), 0),
+    totalSets: weekWorkouts.reduce((a, w) => a + countDoneSets(w), 0),
+    totalDurationSec: weekWorkouts.reduce((a, w) => a + (w.durationSec || 0), 0),
+  };
+}
+function formatDuration(sec) {
+  if (!sec) return "0m";
+  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+  return h > 0 ? h + "h " + m + "m" : m + "m";
+}
+function getNextRoutine() {
+  if (state.routines.length === 0) return null;
+  const last = getLastWorkout();
+  if (!last) return state.routines[0];
+  const idx = state.routines.findIndex((r) => r.name === last.name);
+  if (idx === -1) return state.routines[0];
+  return state.routines[(idx + 1) % state.routines.length];
+}
+function getExercisesWithData() {
+  const ids = new Set();
+  state.workouts.forEach((w) => w.exercises.forEach((e) => { if (e.sets.some((s) => s.done && s.weight)) ids.add(e.exerciseId); }));
+  return state.exercises.filter((e) => ids.has(e.id));
+}
+function getProgressPoints(exId) {
+  if (!exId) return [];
+  const pts = [];
+  [...state.workouts].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((w) => {
+    const se = w.exercises.find((e) => e.exerciseId === exId);
+    if (!se) return;
+    const done = se.sets.filter((s) => s.done && s.weight);
+    if (done.length === 0) return;
+    const top = Math.max(...done.map((s) => Number(s.weight) || 0));
+    pts.push({ label: fmtDateShort(w.date), value: top });
+  });
+  return pts;
+}
+
+/* ============ STORAGE ============ */
+async function loadData() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if (res && res.value) return JSON.parse(res.value);
+  } catch (e) { /* not found yet */ }
+  return { exercises: DEFAULT_EXERCISES, routines: [], workouts: [], theme: "light" };
+}
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", state.theme === "dark" ? "dark" : "light");
+}
+let saveTimer = null;
+let saveInFlight = false;
+let saveQueuedAgain = false;
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { flushSave(2); }, 400);
+}
+async function flushSave(retriesLeft) {
+  if (saveInFlight) { saveQueuedAgain = true; return; }
+  saveInFlight = true;
+  const payload = JSON.stringify({ exercises: state.exercises, routines: state.routines, workouts: state.workouts, theme: state.theme });
+  try {
+    await window.storage.set(STORAGE_KEY, payload, false);
+  } catch (e) {
+    console.error("Lỗi lưu dữ liệu:", e);
+    if (retriesLeft > 0) {
+      saveInFlight = false;
+      setTimeout(() => flushSave(retriesLeft - 1), 900);
+      return;
+    }
+  }
+  saveInFlight = false;
+  if (saveQueuedAgain) { saveQueuedAgain = false; scheduleSave(); }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && state.loaded) { if (saveTimer) clearTimeout(saveTimer); flushSave(1); }
+});
+
+/* ============ CHART ============ */
+function buildLineChartSVG(points) {
+  if (!points || points.length === 0) {
+    return '<div style="padding:40px 0;text-align:center;color:var(--text-faint);font-size:13px;">Chưa đủ dữ liệu để vẽ biểu đồ</div>';
+  }
+  const W = 320, H = 190, padL = 34, padR = 14, padT = 16, padB = 26;
+  const values = points.map((p) => p.value);
+  let min = Math.min(...values), max = Math.max(...values);
+  if (min === max) { min -= 5; max += 5; }
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const coords = points.map((p, i) => ({
+    x: padL + i * xStep,
+    y: padT + innerH - ((p.value - min) / (max - min)) * innerH,
+    label: p.label, value: p.value,
+  }));
+  const poly = coords.map((c) => c.x.toFixed(1) + "," + c.y.toFixed(1)).join(" ");
+  const labelEvery = Math.max(1, Math.ceil(coords.length / 6));
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;">';
+  svg += '<line x1="' + padL + '" y1="' + padT + '" x2="' + padL + '" y2="' + (H - padB) + '" stroke="var(--border-soft)" />';
+  svg += '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="var(--border-soft)" />';
+  svg += '<text x="4" y="' + (padT + 4) + '" font-size="9" fill="var(--text-faint)">' + Math.round(max) + '</text>';
+  svg += '<text x="4" y="' + (H - padB) + '" font-size="9" fill="var(--text-faint)">' + Math.round(min) + '</text>';
+  svg += '<polyline points="' + poly + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />';
+  coords.forEach((c) => {
+    svg += '<circle cx="' + c.x.toFixed(1) + '" cy="' + c.y.toFixed(1) + '" r="3.5" fill="var(--accent)"><title>' + esc(c.label) + ": " + c.value + 'kg</title></circle>';
+  });
+  coords.forEach((c, i) => {
+    if (i % labelEvery === 0) {
+      svg += '<text x="' + c.x.toFixed(1) + '" y="' + (H - 8) + '" font-size="9" fill="var(--text-faint)" text-anchor="middle">' + esc(c.label) + '</text>';
+    }
+  });
+  svg += "</svg>";
+  return svg;
+}
+
+/* ============ RENDER: SHARED PIECES ============ */
+function renderEmpty(icon, title, sub) {
+  return '<div class="empty"><div class="empty-icon">' + icon + '</div><div class="empty-title">' + esc(title) + '</div><div class="empty-sub">' + esc(sub) + "</div></div>";
+}
+function renderThemeToggle() {
+  const isDark = state.theme === "dark";
+  return '<button type="button" class="theme-toggle" data-action="toggle-theme" title="Đổi giao diện sáng/tối">' + (isDark ? "☀️" : "🌙") + "</button>";
+}
+function renderBottomNav() {
+  const items = [
+    { id: "log", label: "Tập", icon: "🏋" },
+    { id: "history", label: "Dữ liệu", icon: "🕘" },
+    { id: "progress", label: "Tiến bộ", icon: "📈" },
+    { id: "routines", label: "Routine", icon: "📋" },
+  ];
+  let html = '<div class="bottom-nav-wrap"><div class="bottom-nav"><div class="nav-items-wrap">';
+  html += items.map((it) =>
+    '<button type="button" class="nav-item ' + (state.tab === it.id ? "active" : "") + '" data-action="select-tab" data-tab="' + it.id + '">' +
+    '<span class="nav-icon">' + it.icon + '</span><span class="nav-label">' + it.label + "</span></button>"
+  ).join("");
+  html += '</div><button type="button" class="fab" data-action="start-empty" aria-label="Bắt đầu buổi tập trống">+</button></div></div>';
+  return html;
+}
+
+/* ============ TAB: LOG ============ */
+function renderLogTab() {
+  const last = getLastWorkout();
+  const next = getNextRoutine();
+  const days = getDayStrip();
+  const stats = getWeekStats();
+  const showNext = state.heroMetric !== "progress";
+
+  let html = '<div class="scroll" id="tab-scroll">';
+  html += '<div class="header"><div><div class="header-title">Nhật ký tập</div><div class="header-subtitle">' + esc(todayGreeting()) + "</div></div>" + renderThemeToggle() + "</div>";
+
+  html += '<div class="hero-card">';
+  html += '<div class="day-strip">' + days.map((d) =>
+    '<div class="day-item ' + (d.isToday ? "today" : "") + '"><div class="day-weekday">' + d.weekday + '</div><div class="day-num">' + d.dayNum + "</div>" +
+    (d.hasWorkout ? '<div class="day-dot"></div>' : '<div style="height:5px;"></div>') + "</div>"
+  ).join("") + "</div>";
+  html += '<div class="segmented">';
+  html += '<button type="button" class="segmented-option ' + (showNext ? "active" : "") + '" data-action="hero-metric" data-metric="next">Buổi tiếp theo</button>';
+  html += '<button type="button" class="segmented-option ' + (!showNext ? "active" : "") + '" data-action="hero-metric" data-metric="progress">Tiến độ</button>';
+  html += "</div>";
+  if (showNext) {
+    if (next) {
+      html += '<div class="hero-big clickable" data-action="start-routine" data-id="' + next.id + '" style="font-size:28px;line-height:1.2;">' + esc(next.name) + "</div>";
+      html += '<div class="hero-big-label">' + next.exercises.length + " bài · bấm để bắt đầu</div>";
+    } else {
+      html += '<div class="hero-big" style="font-size:22px;">Chưa có lịch tập</div><div class="hero-big-label">Tạo routine ở tab Routine</div>';
+    }
+  } else {
+    html += '<div class="hero-big">' + Math.round(stats.totalVolume).toLocaleString("vi-VN") + '</div><div class="hero-big-label">KG tuần này · ' + stats.sessions + " buổi tập</div>";
+  }
+  html += "</div>";
+
+  html += '<div class="info-card-row">';
+  if (next) {
+    html += '<div class="info-card clickable" data-action="start-routine" data-id="' + next.id + '">';
+    html += '<div class="info-card-label">Buổi tiếp theo</div><div class="info-card-value">' + esc(next.name) + "</div>";
+    html += '<div class="info-card-foot">' + next.exercises.length + " bài · bấm để bắt đầu</div></div>";
+  } else {
+    html += '<div class="info-card"><div class="info-card-label">Buổi tiếp theo</div><div class="info-card-value" style="color:var(--text-faint);">Chưa có lịch tập</div><div class="info-card-foot">Tạo ở tab Routine</div></div>';
+  }
+  if (last) {
+    html += '<div class="info-card clickable" data-action="view-workout" data-id="' + last.id + '">';
+    html += '<div class="info-card-label">Buổi gần nhất</div><div class="info-card-value">' + esc(last.name) + "</div>";
+    html += '<div class="info-card-foot">' + fmtDate(last.date) + " · " + countDoneSets(last) + " set</div></div>";
+  } else {
+    html += '<div class="info-card"><div class="info-card-label">Buổi gần nhất</div><div class="info-card-value" style="color:var(--text-faint);">Chưa có dữ liệu</div><div class="info-card-foot">Bắt đầu buổi đầu tiên</div></div>';
+  }
+  html += "</div>";
+
+  html += '<div style="padding:20px 20px 100px;"><div class="section-label">Routine của bạn</div>';
+  if (state.routines.length === 0) {
+    html += '<div style="font-size:13px;color:var(--text-faint);padding:8px 2px;">Chưa có routine nào. Tạo ở tab "Routine" để bắt đầu nhanh hơn.</div>';
+  }
+  html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+  state.routines.forEach((r) => {
+    html += '<div class="card clickable" data-action="start-routine" data-id="' + r.id + '" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">';
+    html += '<div style="display:flex;align-items:center;gap:12px;">';
+    html += '<div style="width:40px;height:40px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;">🏋</div>';
+    html += '<div><div style="font-weight:700;font-size:15px;color:var(--text);">' + esc(r.name) + '</div><div style="font-size:12.5px;color:var(--text-dim);margin-top:2px;">' + r.exercises.length + " bài tập</div></div>";
+    html += "</div>";
+    html += '<span style="color:var(--accent-deep);font-size:19px;">›</span></div>';
+  });
+  html += "</div></div></div>";
+  html += renderBottomNav();
+  return html;
+}
+
+/* ============ TAB: HISTORY ============ */
+function renderHistoryTab() {
+  const sorted = [...state.workouts].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let html = '<div class="scroll" id="tab-scroll"><div class="header"><div><div class="header-title">Dữ liệu</div><div class="header-subtitle">' + state.workouts.length + ' buổi đã ghi</div></div>' + renderThemeToggle() + "</div>";
+  html += '<div style="padding:0 20px 16px;"><button type="button" class="dashed-btn" style="margin-top:0;" data-action="log-past-workout">+ Ghi buổi tập đã tập</button></div>';
+  html += '<div style="padding:0 20px 100px;">';
+  if (sorted.length === 0) html += renderEmpty("🕘", "Chưa có buổi tập nào", "Hoàn thành buổi đầu tiên để thấy lịch sử tại đây.");
+  html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+  sorted.forEach((w) => {
+    const vol = workoutVolume(w), sets = countDoneSets(w);
+    html += '<div class="card"><div class="clickable" data-action="view-workout" data-id="' + w.id + '">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+    html += '<div><div style="font-weight:700;font-size:14.5px;">' + esc(w.name) + '</div><div style="font-size:12px;color:var(--text-dim);margin-top:2px;">' + fmtDate(w.date) + " · " + w.exercises.length + " bài</div></div>";
+    html += '<button type="button" class="icon-btn danger" data-action="delete-workout" data-id="' + w.id + '">🗑</button></div>';
+    html += '<div class="pastel-card pastel-blue" style="margin-top:10px;padding:12px 14px;"><div style="font-size:14px;font-weight:800;line-height:1.6;">' + w.exercises.map(summarizeExercise).join("<br>") + "</div></div>";
+    html += "</div></div>";
+  });
+  html += "</div></div></div>";
+  html += renderBottomNav();
+  return html;
+}
+function renderWorkoutDetail(w) {
+  let html = '<div class="detail-overlay"><div style="padding:18px 20px 8px;display:flex;align-items:center;gap:10px;">';
+  html += '<button type="button" class="icon-btn" data-action="close-detail">←</button>';
+  html += '<div><div style="font-size:17px;font-weight:700;">' + esc(w.name) + '</div>';
+  html += '<input type="date" id="detail-date-input" value="' + w.date + '" style="border:none;background:none;color:var(--text-dim);font-size:12px;padding:0;font-family:inherit;" /></div></div>';
+  html += '<div class="scroll" id="detail-scroll" style="flex:1;padding:8px 20px 100px;">';
+
+  const plannedIdx = [], addedIdx = [];
+  w.exercises.forEach((se, i) => { (se.origin === "added" ? addedIdx : plannedIdx).push(i); });
+
+  if (plannedIdx.length > 0) {
+    html += '<div class="section-label">Theo lịch tập</div>';
+    plannedIdx.forEach((exIdx) => { html += renderSetCard(w.exercises[exIdx], exIdx, {}); });
+  }
+  if (addedIdx.length > 0) {
+    html += '<div class="section-label" style="margin-top:' + (plannedIdx.length > 0 ? "8px" : "0") + ';">Tự thêm hôm nay</div>';
+    addedIdx.forEach((exIdx) => { html += renderSetCard(w.exercises[exIdx], exIdx, {}); });
+  }
+
+  html += '<button type="button" class="dashed-btn" data-action="open-picker" data-context="history">+ Thêm bài tập</button>';
+  html += "</div></div>";
+  return html;
+}
+
+/* ============ TAB: PROGRESS ============ */
+function renderProgressTab() {
+  const list = getExercisesWithData();
+  if (!state.progressSelectedId && list.length > 0) state.progressSelectedId = list[0].id;
+  const points = getProgressPoints(state.progressSelectedId);
+  const stats = points.length ? { best: Math.max(...points.map((p) => p.value)), latest: points[points.length - 1].value, first: points[0].value } : null;
+  let html = '<div class="scroll" id="tab-scroll"><div class="header"><div><div class="header-title">Tiến bộ</div><div class="header-subtitle">Theo dõi mức tạ theo thời gian</div></div>' + renderThemeToggle() + "</div>";
+  html += '<div style="padding:0 20px 100px;">';
+  if (list.length === 0) {
+    html += renderEmpty("📈", "Chưa có dữ liệu", "Hoàn thành vài buổi tập để xem biểu đồ tiến bộ.");
+  } else {
+    html += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:14px;">';
+    list.forEach((e) => {
+      html += '<button type="button" class="chip ' + (state.progressSelectedId === e.id ? "active" : "") + '" data-action="select-progress" data-id="' + e.id + '">' + esc(e.name) + "</button>";
+    });
+    html += "</div>";
+    if (stats) {
+      const diff = stats.latest - stats.first;
+      html += '<div style="display:flex;gap:10px;margin-bottom:16px;">';
+      html += '<div class="stat-card"><div class="stat-label">TỐT NHẤT</div><div class="stat-value" style="color:var(--accent-deep);">' + stats.best + '<span style="font-size:13px;font-weight:700;">kg</span></div></div>';
+      html += '<div class="stat-card"><div class="stat-label">GẦN NHẤT</div><div class="stat-value" style="color:var(--text);">' + stats.latest + '<span style="font-size:13px;font-weight:700;">kg</span></div></div>';
+      html += '<div class="stat-card"><div class="stat-label">TĂNG</div><div class="stat-value" style="color:var(--success);">' + (diff >= 0 ? "+" : "") + diff + '<span style="font-size:13px;font-weight:700;">kg</span></div></div>';
+      html += "</div>";
+    }
+    html += '<div class="card" style="padding:16px 8px 8px;">' + buildLineChartSVG(points) + "</div>";
+  }
+  html += "</div></div>";
+  html += renderBottomNav();
+  return html;
+}
+
+/* ============ TAB: ROUTINES ============ */
+function renderRoutinesTab() {
+  if (state.editingRoutine) return renderRoutineEditor();
+  let html = '<div class="scroll" id="tab-scroll"><div class="header"><div><div class="header-title">Routine</div><div class="header-subtitle">Thứ tự dưới đây = chu kỳ tập của bạn</div></div>';
+  html += '<div style="display:flex;gap:8px;align-items:center;">' + renderThemeToggle() + '<button type="button" class="icon-btn accent" data-action="new-routine" style="font-size:20px;">+</button></div></div>';
+  html += '<div style="padding:0 20px 100px;">';
+  if (state.routines.length === 0) html += renderEmpty("📋", "Chưa có routine", "Tạo mẫu để bắt đầu buổi tập nhanh hơn.");
+  html += '<div style="display:flex;flex-direction:column;gap:10px;">';
+  state.routines.forEach((r, i) => {
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
+    html += '<span class="mono" style="font-size:11px;font-weight:700;color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:3px 7px;">' + (i + 1) + '</span>';
+    html += '<div style="font-weight:700;font-size:15px;color:var(--text);">' + esc(r.name) + '</div></div>';
+    html += '<div style="display:flex;gap:2px;">';
+    html += '<button type="button" class="icon-btn" data-action="routine-move-up" data-id="' + r.id + '" ' + (i === 0 ? "disabled" : "") + ' style="opacity:' + (i === 0 ? "0.3" : "1") + ';">↑</button>';
+    html += '<button type="button" class="icon-btn" data-action="routine-move-down" data-id="' + r.id + '" ' + (i === state.routines.length - 1 ? "disabled" : "") + ' style="opacity:' + (i === state.routines.length - 1 ? "0.3" : "1") + ';">↓</button>';
+    html += '<button type="button" class="icon-btn" data-action="edit-routine" data-id="' + r.id + '">✎</button>';
+    html += '<button type="button" class="icon-btn danger" data-action="delete-routine" data-id="' + r.id + '">🗑</button></div></div>';
+    html += '<div style="font-size:12px;font-weight:500;color:var(--text-dim);margin-top:6px;">' + r.exercises.map((e) => esc(e.name) + " " + e.targetSets + "×" + esc(e.repRange || "")).join(" · ") + "</div></div>";
+  });
+  html += "</div></div></div>";
+  html += renderBottomNav();
+  return html;
+}
+function renderRoutineEditor() {
+  const r = state.editingRoutine;
+  let html = '<div class="scroll" id="tab-scroll"><div style="padding:18px 20px 8px;display:flex;align-items:center;justify-content:space-between;">';
+  html += '<button data-action="cancel-routine-edit" style="background:none;border:none;color:var(--text-dim);font-size:14px;display:flex;align-items:center;gap:4px;">← Huỷ</button>';
+  html += '<button data-action="save-routine" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:14px;display:flex;align-items:center;gap:4px;">💾 Lưu</button></div>';
+  html += '<div style="padding:8px 20px;"><input id="routine-name-input" class="input" style="font-size:18px;font-weight:700;padding:10px 12px;" value="' + esc(r.name) + '" /></div>';
+  html += '<div style="padding:12px 20px 100px;">';
+  r.exercises.forEach((e, i) => {
+    html += '<div class="card" style="margin-bottom:8px;padding:12px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div><div style="font-size:14px;font-weight:600;">' + esc(e.name) + '</div>';
+    if (e.repRange) html += '<div style="font-size:11px;color:var(--text-faint);margin-top:1px;">' + esc(e.repRange) + " reps</div>";
+    html += "</div>";
+    html += '<div style="display:flex;align-items:center;gap:10px;"><div style="display:flex;align-items:center;gap:6px;">';
+    html += '<button type="button" class="mini-btn" data-action="routine-set-minus" data-i="' + i + '">−</button>';
+    html += '<span class="mono" style="width:14px;text-align:center;font-size:13px;">' + e.targetSets + '</span>';
+    html += '<button type="button" class="mini-btn" data-action="routine-set-plus" data-i="' + i + '">+</button></div>';
+    html += '<button type="button" class="icon-btn danger" data-action="routine-remove-exercise" data-i="' + i + '" style="font-size:14px;">🗑</button></div></div>';
+    html += '<textarea id="routine-note-input-' + i + '" class="input" rows="2" placeholder="Ghi số hiệp/rep hoặc mô tả bài tập... (VD: 4x10, chú ý giữ lưng thẳng)" style="margin-top:10px;font-size:13px;resize:none;">' + esc(e.note || "") + "</textarea>";
+    html += "</div>";
+  });
+  html += '<button type="button" class="dashed-btn" data-action="open-picker" data-context="routine">+ Thêm bài tập</button>';
+  html += "</div></div>";
+  return html;
+}
+
+/* ============ ACTIVE WORKOUT ============ */
+function renderActiveWorkout() {
+  const s = state.activeSession;
+  const totalSets = s.exercises.reduce((a, e) => a + e.sets.length, 0);
+  const doneSets = s.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0);
+  const canFinish = s.exercises.length > 0 && s.exercises.some((e) => e.sets.some((x) => x.done));
+  let html = '<div style="padding:18px 20px 12px;display:flex;align-items:center;justify-content:space-between;">';
+  html += '<button data-action="cancel-workout" style="display:flex;align-items:center;gap:4px;background:none;border:none;color:var(--text-dim);font-size:14px;">← Huỷ</button>';
+  html += '<div style="display:flex;align-items:center;gap:6px;color:var(--accent);">⏱ <span id="timer-display" class="mono" style="font-size:15px;font-weight:700;">' + formatElapsed(Date.now() - s.startedAt) + "</span></div></div>";
+  html += '<div style="padding:0 20px 10px;"><div style="font-size:20px;font-weight:800;">' + esc(s.name) + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-dim);margin-top:2px;"><span class="mono">' + doneSets + "/" + totalSets + "</span> set hoàn thành</div></div>";
+  html += '<div class="scroll" id="tab-scroll" style="height:calc(100% - 180px);padding:4px 20px 100px;">';
+  if (s.exercises.length === 0) html += renderEmpty("🏋", "Chưa có bài tập", "Thêm bài tập đầu tiên để bắt đầu buổi tập.");
+  s.exercises.forEach((se, exIdx) => { html += renderSetCard(se, exIdx, { best: getPrevBest()[se.exerciseId] }); });
+  html += '<button type="button" class="dashed-btn" data-action="open-picker" data-context="active">+ Thêm bài tập</button></div>';
+  html += '<div style="position:absolute;bottom:0;left:0;right:0;padding:16px;background:linear-gradient(0deg, var(--bg) 60%, transparent);">';
+  html += '<button type="button" class="btn-primary" data-action="finish-workout" ' + (canFinish ? "" : "disabled") + '>✓ Hoàn thành buổi tập</button></div>';
+  return html;
+}
+function renderSetCard(se, exIdx, opts) {
+  opts = opts || {};
+  const mode = se.mode || "strength";
+  const doneCount = se.sets.filter((x) => x.done).length;
+  let html = '<div class="card" style="margin-bottom:12px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+  html += '<div><div style="font-size:15px;font-weight:700;">' + esc(se.name) + "</div>";
+  if (se.repRange && mode === "strength") html += '<div style="font-size:11px;color:var(--text-faint);margin-top:1px;">Mục tiêu: <span class="mono">' + esc(se.repRange) + " reps/set</span></div>";
+  if (se.note) html += '<div style="font-size:12px;color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:4px 8px;margin-top:5px;display:inline-block;">📝 ' + esc(se.note) + "</div>";
+  html += '</div><div style="display:flex;align-items:center;gap:8px;">';
+  if (mode === "strength") {
+    html += '<div class="plate-stack">' + se.sets.map((_, i) => '<div class="plate ' + (i < doneCount ? "filled" : "") + '"></div>').join("") + "</div>";
+  } else {
+    html += '<span style="font-size:11px;color:var(--text-faint);">' + doneCount + "/" + se.sets.length + "</span>";
+  }
+  html += '<button type="button" class="icon-btn danger" data-action="remove-exercise" data-ex="' + exIdx + '" style="font-size:14px;">🗑</button></div></div>';
+
+  html += '<div class="mode-toggle">';
+  html += '<button type="button" class="mode-btn ' + (mode === "strength" ? "active" : "") + '" data-action="set-mode" data-ex="' + exIdx + '" data-mode="strength">Tạ</button>';
+  html += '<button type="button" class="mode-btn ' + (mode === "cardio" ? "active" : "") + '" data-action="set-mode" data-ex="' + exIdx + '" data-mode="cardio">Cardio</button>';
+  html += '<button type="button" class="mode-btn ' + (mode === "custom" ? "active" : "") + '" data-action="set-mode" data-ex="' + exIdx + '" data-mode="custom">Tuỳ chỉnh</button>';
+  html += "</div>";
+
+  if (opts.best && mode === "strength") {
+    html += '<div style="font-size:11.5px;color:var(--text-faint);margin-bottom:8px;">🔥 Lần trước tốt nhất: <span class="mono">' + esc(String(opts.best.weight)) + "kg × " + esc(String(opts.best.reps)) + "</span></div>";
+  }
+
+  if (mode === "custom") {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+    html += '<span style="font-size:11px;color:var(--text-faint);white-space:nowrap;">Đơn vị</span>';
+    html += '<input class="input custom-unit-input" data-ex="' + exIdx + '" style="flex:1;padding:6px 10px;font-size:13px;" placeholder="vd: vòng, phút plank, bpm..." value="' + esc(se.customUnit || "") + '" />';
+    html += "</div>";
+  }
+
+  const cols = mode === "strength" ? "24px 1fr 1fr 44px" : mode === "cardio" ? "20px 1fr 1fr 1fr 44px" : "24px 1fr 44px";
+  html += '<div style="display:grid;grid-template-columns:' + cols + ';gap:6px;font-size:10.5px;color:var(--text-faint);padding:0 2px 6px;text-transform:uppercase;letter-spacing:0.04em;">';
+  if (mode === "strength") html += "<div>Set</div><div>Kg</div><div>Reps</div><div></div>";
+  else if (mode === "cardio") html += "<div>Set</div><div>Phút</div><div>Km</div><div>Kcal</div><div></div>";
+  else html += "<div>Set</div><div>" + esc(se.customUnit || "Giá trị") + "</div><div></div>";
+  html += "</div>";
+
+  se.sets.forEach((st, setIdx) => {
+    html += '<div class="set-row" data-ex="' + exIdx + '" data-set="' + setIdx + '" style="display:grid;grid-template-columns:' + cols + ';gap:6px;align-items:center;margin-bottom:6px;">';
+    html += '<span class="mono" style="font-size:12.5px;color:var(--text-dim);">' + (setIdx + 1) + "</span>";
+    if (mode === "strength") {
+      html += '<input class="set-input inp-weight ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.weight || "")) + '" placeholder="0" />';
+      html += '<input class="set-input inp-reps ' + (st.done ? "done" : "") + '" inputmode="numeric" value="' + esc(String(st.reps || "")) + '" placeholder="0" />';
+    } else if (mode === "cardio") {
+      html += '<input class="set-input inp-duration ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.duration || "")) + '" placeholder="0" />';
+      html += '<input class="set-input inp-distance ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.distance || "")) + '" placeholder="0" />';
+      html += '<input class="set-input inp-calories ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.calories || "")) + '" placeholder="0" />';
+    } else {
+      html += '<input class="set-input inp-value ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.value || "")) + '" placeholder="0" />';
+    }
+    html += '<button type="button" class="set-check ' + (st.done ? "done" : "") + '" data-action="toggle-done" data-ex="' + exIdx + '" data-set="' + setIdx + '">✓</button></div>';
+  });
+  html += '<div style="display:flex;gap:8px;margin-top:8px;"><button type="button" class="link-btn" data-action="add-set" data-ex="' + exIdx + '">+ Thêm set</button>';
+  if (se.sets.length > 0) html += '<button type="button" class="link-btn faint" data-action="remove-set" data-ex="' + exIdx + '" data-set="' + (se.sets.length - 1) + '">Bỏ set cuối</button>';
+  html += "</div></div>";
+  return html;
+}
+
+/* ============ PICKER OVERLAY ============ */
+function getViewingWorkout() {
+  return state.viewingWorkoutId ? state.workouts.find((w) => w.id === state.viewingWorkoutId) : null;
+}
+function getEditableExercisesRef() {
+  if (state.activeSession) return state.activeSession.exercises;
+  const w = getViewingWorkout();
+  return w ? w.exercises : null;
+}
+function getAlreadyPicked() {
+  if (!state.picker) return [];
+  if (state.picker.context === "active") return state.activeSession.exercises.map((e) => e.exerciseId);
+  if (state.picker.context === "routine") return state.editingRoutine.exercises.map((e) => e.exerciseId);
+  if (state.picker.context === "history") { const w = getViewingWorkout(); return w ? w.exercises.map((e) => e.exerciseId) : []; }
+  return [];
+}
+function renderPicker() {
+  const already = getAlreadyPicked();
+  const HIDDEN_GROUPS = ["Đẩy", "Kéo", "Chân", "Core"];
+  const groups = {};
+  state.exercises.forEach((e) => { if (HIDDEN_GROUPS.includes(e.group)) return; (groups[e.group] = groups[e.group] || []).push(e); });
+  const groupNames = Object.keys(groups);
+  let html = '<div class="overlay" id="picker-overlay"><div class="sheet">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;">';
+  html += '<div style="font-size:17px;font-weight:700;">Chọn bài tập</div><button type="button" class="icon-btn" data-action="close-picker">×</button></div>';
+  html += '<div style="padding:0 16px 10px;"><input id="picker-search" class="input" placeholder="Tìm bài tập..." /></div>';
+  html += '<div style="display:flex;gap:6px;overflow-x:auto;padding:0 16px 12px;">';
+  groupNames.forEach((g) => {
+    html += '<button type="button" class="chip" data-action="picker-jump-group" data-group="' + esc(g) + '" style="flex:none;">' + esc(g) + "</button>";
+  });
+  html += "</div>";
+  html += '<div class="scroll" id="picker-scroll" style="padding:0 16px 12px;flex:1;">';
+  Object.entries(groups).forEach(([group, items]) => {
+    html += '<div class="picker-group" id="picker-group-' + esc(group) + '" style="margin-bottom:16px;scroll-margin-top:8px;"><div class="section-label">' + esc(group) + "</div>";
+    items.forEach((ex) => {
+      const picked = already.includes(ex.id);
+      html += '<button type="button" class="picker-item ' + (picked ? "picked" : "") + '" data-action="picker-pick" data-id="' + ex.id + '" data-name="' + esc(ex.name) + '" data-search="' + esc(ex.name.toLowerCase()) + '">';
+      html += "<span>" + esc(ex.name) + "</span><span>" + (picked ? "✓" : "+") + "</span></button>";
+    });
+    html += "</div>";
+  });
+  html += "</div>";
+  html += '<div style="padding:16px;border-top:1px solid var(--border-soft);">';
+  html += '<div style="display:flex;gap:6px;margin-bottom:8px;">';
+  html += '<button type="button" class="chip ' + (state.picker.newGroup !== "Cardio" ? "active" : "") + '" data-action="picker-new-group" data-group="Tuỳ chỉnh">Bài tập tạ</button>';
+  html += '<button type="button" class="chip ' + (state.picker.newGroup === "Cardio" ? "active" : "") + '" data-action="picker-new-group" data-group="Cardio">Bài Cardio</button>';
+  html += "</div>";
+  html += '<div style="display:flex;gap:8px;">';
+  html += '<input id="picker-new-name" class="input" style="flex:1;" placeholder="Tên bài tập mới..." />';
+  html += '<button type="button" class="btn-accent-small" data-action="picker-create">Tạo</button></div></div>';
+  html += "</div></div>";
+  return html;
+}
+
+/* ============ MUTATIONS ============ */
+function syncActiveInputsToState() {
+  const exs = getEditableExercisesRef();
+  if (!exs) return;
+  document.querySelectorAll(".set-row").forEach((row) => {
+    const exIdx = +row.dataset.ex, setIdx = +row.dataset.set;
+    const ex = exs[exIdx];
+    if (!ex) return;
+    const st = ex.sets[setIdx];
+    if (!st) return;
+    const mode = ex.mode || "strength";
+    if (mode === "strength") {
+      const w = row.querySelector(".inp-weight"), r = row.querySelector(".inp-reps");
+      if (w) st.weight = w.value;
+      if (r) st.reps = r.value;
+    } else if (mode === "cardio") {
+      const d = row.querySelector(".inp-duration"), ds = row.querySelector(".inp-distance"), c = row.querySelector(".inp-calories");
+      if (d) st.duration = d.value;
+      if (ds) st.distance = ds.value;
+      if (c) st.calories = c.value;
+    } else {
+      const v = row.querySelector(".inp-value");
+      if (v) st.value = v.value;
+    }
+  });
+  document.querySelectorAll(".custom-unit-input").forEach((inp) => {
+    const ex = exs[+inp.dataset.ex];
+    if (ex) ex.customUnit = inp.value;
+  });
+}
+function pickExercise(id, name) {
+  const mode = defaultModeForExercise(id);
+  if (state.picker.context === "active") {
+    if (state.activeSession.exercises.some((e) => e.exerciseId === id)) { state.picker = null; return; }
+    state.activeSession.exercises.push({ exerciseId: id, name: name, mode: mode, sets: [emptySetForMode(mode)] });
+  } else if (state.picker.context === "routine") {
+    if (state.editingRoutine.exercises.some((e) => e.exerciseId === id)) { state.picker = null; return; }
+    state.editingRoutine.exercises.push({ exerciseId: id, name: name, targetSets: 3 });
+  } else if (state.picker.context === "history") {
+    const w = getViewingWorkout();
+    if (!w) { state.picker = null; return; }
+    if (w.exercises.some((e) => e.exerciseId === id)) { state.picker = null; return; }
+    w.exercises.push({ exerciseId: id, name: name, mode: mode, sets: [emptySetForMode(mode)], origin: "added" });
+  }
+  state.picker = null;
+}
+function createExerciseFromPicker() {
+  const nameInput = document.getElementById("picker-new-name");
+  const name = nameInput ? nameInput.value.trim() : "";
+  if (!name) return;
+  const group = (state.picker && state.picker.newGroup === "Cardio") ? "Cardio" : "Tuỳ chỉnh";
+  const ex = { id: uid("e"), name: name, group: group, type: group === "Cardio" ? "cardio" : "strength" };
+  state.exercises.push(ex);
+  pickExercise(ex.id, ex.name);
+}
+function startEmpty() {
+  state.activeSession = { id: uid("w"), name: "Buổi tập trống", date: todayStr(), startedAt: Date.now(), exercises: [] };
+}
+function startFromRoutine(id) {
+  const r = state.routines.find((x) => x.id === id);
+  if (!r) return;
+  state.activeSession = {
+    id: uid("w"), name: r.name, date: todayStr(), startedAt: Date.now(),
+    exercises: r.exercises.map((e) => {
+      const mode = defaultModeForExercise(e.exerciseId);
+      return {
+        exerciseId: e.exerciseId, name: e.name, repRange: e.repRange || null, note: e.note || null, mode: mode,
+        sets: Array.from({ length: e.targetSets || 3 }).map(() => emptySetForMode(mode)),
+      };
+    }),
+  };
+}
+function finishWorkout() {
+  const s = state.activeSession;
+  const cleaned = {
+    ...s,
+    durationSec: Math.round((Date.now() - s.startedAt) / 1000),
+    exercises: s.exercises.map((e) => ({ ...e, origin: e.origin || "routine", sets: e.sets.filter((x) => x.done) })).filter((e) => e.sets.length > 0),
+  };
+  if (cleaned.exercises.length === 0) { state.activeSession = null; return; }
+  state.workouts.push(cleaned);
+  state.activeSession = null;
+  state.tab = "history";
+}
+function closeWorkoutDetail() {
+  const w = getViewingWorkout();
+  if (w) {
+    w.exercises = w.exercises.map((e) => ({ ...e, sets: (e.sets || []).filter((s) => s.done) })).filter((e) => (e.sets || []).length > 0);
+    if (w.exercises.length === 0) {
+      state.workouts = state.workouts.filter((x) => x.id !== w.id);
+    } else if (w.name === "Buổi tự ghi") {
+      w.name = w.exercises.map((e) => e.name).join(" + ");
+    }
+  }
+  state.viewingWorkoutId = null;
+}
+function syncRoutineNotesToState() {
+  if (!state.editingRoutine) return;
+  state.editingRoutine.exercises.forEach((e, i) => {
+    const noteEl = document.getElementById("routine-note-input-" + i);
+    if (noteEl) e.note = noteEl.value;
+  });
+}
+function saveRoutine() {
+  const nameEl = document.getElementById("routine-name-input");
+  const name = nameEl ? nameEl.value.trim() : state.editingRoutine.name;
+  if (!name || state.editingRoutine.exercises.length === 0) return;
+  state.editingRoutine.name = name;
+  state.editingRoutine.exercises.forEach((e, i) => {
+    const noteEl = document.getElementById("routine-note-input-" + i);
+    if (noteEl) e.note = noteEl.value.trim() || null;
+  });
+  const exists = state.routines.some((r) => r.id === state.editingRoutine.id);
+  if (exists) state.routines = state.routines.map((r) => (r.id === state.editingRoutine.id ? state.editingRoutine : r));
+  else state.routines.push(state.editingRoutine);
+  state.editingRoutine = null;
+}
+
+/* ============ ACTION DISPATCH ============ */
+function handleAction(action, el) {
+  switch (action) {
+    case "select-tab": state.tab = el.dataset.tab; break;
+    case "toggle-theme": state.theme = state.theme === "dark" ? "light" : "dark"; applyTheme(); break;
+    case "hero-metric": state.heroMetric = el.dataset.metric; break;
+    case "log-past-workout": {
+      const w = { id: uid("w"), name: "Buổi tự ghi", date: todayStr(), durationSec: 0, exercises: [] };
+      state.workouts.push(w);
+      state.viewingWorkoutId = w.id;
+      state.picker = { context: "history", newGroup: "Tuỳ chỉnh" };
+      break;
+    }
+    case "start-empty": startEmpty(); break;
+    case "start-routine": startFromRoutine(el.dataset.id); break;
+    case "cancel-workout": state.activeSession = null; break;
+    case "finish-workout": finishWorkout(); break;
+    case "open-picker": state.picker = { context: el.dataset.context, newGroup: "Tuỳ chỉnh" }; break;
+    case "close-picker": state.picker = null; break;
+    case "picker-new-group": state.picker.newGroup = el.dataset.group; break;
+    case "picker-pick": pickExercise(el.dataset.id, el.dataset.name); break;
+    case "picker-create": createExerciseFromPicker(); break;
+    case "toggle-done": {
+      const exs = getEditableExercisesRef();
+      const st = exs[+el.dataset.ex].sets[+el.dataset.set];
+      st.done = !st.done;
+      if (st.done && !state.activeSession && state.viewingWorkoutId) closeWorkoutDetail();
+      break;
+    }
+    case "add-set": {
+      const exs = getEditableExercisesRef();
+      const ex = exs[+el.dataset.ex];
+      const mode = ex.mode || "strength";
+      const sets = ex.sets;
+      const last = sets[sets.length - 1];
+      const fresh = emptySetForMode(mode);
+      if (last) { Object.keys(fresh).forEach((k) => { if (k !== "done" && last[k] !== undefined) fresh[k] = last[k]; }); }
+      sets.push(fresh);
+      break;
+    }
+    case "set-mode": {
+      const exs = getEditableExercisesRef();
+      const ex = exs[+el.dataset.ex];
+      ex.mode = el.dataset.mode;
+      ex.sets = [emptySetForMode(ex.mode)];
+      if (ex.mode !== "custom") ex.customUnit = "";
+      break;
+    }
+    case "remove-set": {
+      const exIdx = +el.dataset.ex, setIdx = +el.dataset.set;
+      const exs = getEditableExercisesRef();
+      const ex = exs[exIdx];
+      ex.sets.splice(setIdx, 1);
+      if (ex.sets.length === 0) exs.splice(exIdx, 1);
+      break;
+    }
+    case "remove-exercise": getEditableExercisesRef().splice(+el.dataset.ex, 1); break;
+    case "view-workout": state.viewingWorkoutId = el.dataset.id; break;
+    case "close-detail": closeWorkoutDetail(); break;
+    case "delete-workout": state.workouts = state.workouts.filter((w) => w.id !== el.dataset.id); break;
+    case "select-progress": state.progressSelectedId = el.dataset.id; break;
+    case "new-routine": state.editingRoutine = { id: uid("r"), name: "Routine mới", exercises: [] }; break;
+    case "edit-routine": state.editingRoutine = JSON.parse(JSON.stringify(state.routines.find((r) => r.id === el.dataset.id))); break;
+    case "delete-routine": state.routines = state.routines.filter((r) => r.id !== el.dataset.id); break;
+    case "routine-move-up": {
+      const i = state.routines.findIndex((r) => r.id === el.dataset.id);
+      if (i > 0) { const tmp = state.routines[i - 1]; state.routines[i - 1] = state.routines[i]; state.routines[i] = tmp; }
+      break;
+    }
+    case "routine-move-down": {
+      const i = state.routines.findIndex((r) => r.id === el.dataset.id);
+      if (i !== -1 && i < state.routines.length - 1) { const tmp = state.routines[i + 1]; state.routines[i + 1] = state.routines[i]; state.routines[i] = tmp; }
+      break;
+    }
+    case "cancel-routine-edit": state.editingRoutine = null; break;
+    case "save-routine": saveRoutine(); break;
+    case "routine-remove-exercise": state.editingRoutine.exercises.splice(+el.dataset.i, 1); break;
+    case "routine-set-plus": state.editingRoutine.exercises[+el.dataset.i].targetSets++; break;
+    case "routine-set-minus": {
+      const i = +el.dataset.i;
+      state.editingRoutine.exercises[i].targetSets = Math.max(1, state.editingRoutine.exercises[i].targetSets - 1);
+      break;
+    }
+  }
+}
+
+/* ============ RENDER ROOT ============ */
+function render() {
+  const root = document.getElementById("app");
+  if (!state.loaded) {
+    root.innerHTML = '<div class="frame" style="display:flex;align-items:center;justify-content:center;"><span class="mono" style="color:var(--text-faint);">Đang tải...</span></div>';
+    return;
+  }
+  let body;
+  if (state.activeSession) {
+    body = renderActiveWorkout();
+  } else if (state.tab === "log") body = renderLogTab();
+  else if (state.tab === "history") body = renderHistoryTab();
+  else if (state.tab === "progress") body = renderProgressTab();
+  else body = renderRoutinesTab();
+
+  let html = '<div class="frame"><div class="screen">' + body + "</div></div>";
+  root.innerHTML = html;
+
+  if (state.viewingWorkoutId) {
+    const w = state.workouts.find((x) => x.id === state.viewingWorkoutId);
+    if (w) root.insertAdjacentHTML("beforeend", renderWorkoutDetail(w));
+  }
+  if (state.picker) {
+    root.insertAdjacentHTML("beforeend", renderPicker());
+  }
+  attachPostRenderHandlers();
+}
+function attachPostRenderHandlers() {
+  const dateEl = document.getElementById("detail-date-input");
+  if (dateEl) {
+    dateEl.addEventListener("change", () => {
+      const w = getViewingWorkout();
+      if (w && dateEl.value) w.date = dateEl.value;
+      renderAndPersist();
+    });
+  }
+  const searchEl = document.getElementById("picker-search");
+  if (searchEl) {
+    searchEl.addEventListener("input", () => {
+      const q = searchEl.value.toLowerCase();
+      document.querySelectorAll(".picker-group").forEach((g) => {
+        let any = false;
+        g.querySelectorAll(".picker-item").forEach((item) => {
+          const show = item.dataset.search.includes(q);
+          item.style.display = show ? "" : "none";
+          if (show) any = true;
+        });
+        g.style.display = any ? "" : "none";
+      });
+    });
+  }
+}
+function renderAndPersist() {
+  const scrollIds = ["tab-scroll", "detail-scroll", "picker-scroll"];
+  const pos = {};
+  scrollIds.forEach((id) => { const el = document.getElementById(id); if (el) pos[id] = el.scrollTop; });
+  render();
+  scrollIds.forEach((id) => { const el = document.getElementById(id); if (el && pos[id] !== undefined) el.scrollTop = pos[id]; });
+  if (state.loaded) scheduleSave();
+}
+
+/* ============ EVENTS ============ */
+document.getElementById("app").addEventListener("click", (e) => {
+  if (e.target.id === "picker-overlay") {
+    state.picker = null;
+    renderAndPersist();
+    return;
+  }
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  if (el.dataset.action === "picker-jump-group") {
+    const target = document.getElementById("picker-group-" + el.dataset.group);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  if (state.activeSession || state.viewingWorkoutId) syncActiveInputsToState();
+  if (state.editingRoutine) syncRoutineNotesToState();
+  handleAction(el.dataset.action, el);
+  renderAndPersist();
+});
+
+setInterval(() => {
+  if (state.activeSession) {
+    const el = document.getElementById("timer-display");
+    if (el) el.textContent = formatElapsed(Date.now() - state.activeSession.startedAt);
+  }
+}, 1000);
+
+/* ============ INIT ============ */
+async function maybeSeedPlan() {
+  let seeded = null;
+  try {
+    const res = await window.storage.get(SEED_KEY, false);
+    seeded = res ? res.value : null;
+  } catch (e) { seeded = null; }
+  if (seeded) return;
+
+  const existingIds = new Set(state.exercises.map((e) => e.id));
+  DEFAULT_EXERCISES.forEach((e) => { if (!existingIds.has(e.id)) { state.exercises.push(e); existingIds.add(e.id); } });
+
+  const existingNames = new Set(state.routines.map((r) => r.name));
+  const toAdd = SEED_ROUTINES.filter((r) => !existingNames.has(r.name));
+  state.routines = [...toAdd, ...state.routines];
+
+  await flushSave(2);
+  try { await window.storage.set(SEED_KEY, "1", false); } catch (e) { /* ignore */ }
+}
+
+(async function init() {
+  const d = await loadData();
+  state.exercises = d.exercises && d.exercises.length ? d.exercises : DEFAULT_EXERCISES;
+  state.routines = d.routines || [];
+  state.workouts = d.workouts || [];
+  state.theme = d.theme === "dark" ? "dark" : "light";
+  applyTheme();
+  await maybeSeedPlan();
+  state.loaded = true;
+  render();
+})();
+</script>
+</body>
+</html>
