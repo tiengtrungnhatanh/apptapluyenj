@@ -74,6 +74,8 @@
   .set-input.done{border-color:var(--accent-dim);background:var(--accent-soft);}
   .set-check{width:44px;height:44px;border-radius:12px;border:none;background:var(--raised);color:var(--text-faint);display:flex;align-items:center;justify-content:center;font-size:17px;touch-action:manipulation;transition:background 180ms ease, color 180ms ease;}
   .set-check.done{background:var(--accent);color:#FFFFFF;}
+  .set-del{width:44px;height:44px;border-radius:12px;border:none;background:var(--raised);color:var(--text-faint);display:flex;align-items:center;justify-content:center;font-size:15px;touch-action:manipulation;transition:background 180ms ease, color 180ms ease;}
+  .set-del:active{background:var(--danger);color:#FFFFFF;}
   .plate-stack{display:flex;gap:4px;}
   .plate{width:16px;height:5px;border-radius:2px;background:var(--border);}
   .plate.filled{background:var(--accent);}
@@ -495,47 +497,40 @@ function renderLogTab() {
   const showNext = state.heroMetric !== "progress";
 
   let html = '<div class="scroll" id="tab-scroll">';
-  html += '<div class="header"><div><div class="header-title">Nhật ký tập</div><div class="header-subtitle">' + esc(todayGreeting()) + "</div></div>" + renderThemeToggle() + "</div>";
+  html += '<div class="header" style="padding:16px 20px 10px;"><div><div class="header-title" style="font-size:22px;">Nhật ký tập</div></div>' + renderThemeToggle() + "</div>";
 
-  html += '<div class="hero-card">';
-  html += '<div class="day-strip">' + days.map((d) =>
-    '<div class="day-item ' + (d.isToday ? "today" : "") + '"><div class="day-weekday">' + d.weekday + '</div><div class="day-num">' + d.dayNum + "</div>" +
-    (d.hasWorkout ? '<div class="day-dot"></div>' : '<div style="height:5px;"></div>') + "</div>"
+  html += '<div class="hero-card" style="margin:0 20px;padding:14px 16px 14px;">';
+  html += '<div class="day-strip" style="margin-bottom:10px;">' + days.map((d) =>
+    '<div class="day-item ' + (d.isToday ? "today" : "") + '" style="width:26px;"><div class="day-weekday">' + d.weekday + '</div><div class="day-num" style="width:22px;height:22px;font-size:12.5px;">' + d.dayNum + "</div>" +
+    (d.hasWorkout ? '<div class="day-dot"></div>' : '<div style="height:4px;"></div>') + "</div>"
   ).join("") + "</div>";
-  html += '<div class="segmented">';
+  html += '<div class="segmented" style="margin-bottom:10px;">';
   html += '<button type="button" class="segmented-option ' + (showNext ? "active" : "") + '" data-action="hero-metric" data-metric="next">Buổi tiếp theo</button>';
   html += '<button type="button" class="segmented-option ' + (!showNext ? "active" : "") + '" data-action="hero-metric" data-metric="progress">Tiến độ</button>';
   html += "</div>";
   if (showNext) {
     if (next) {
-      html += '<div class="hero-big clickable" data-action="start-routine" data-id="' + next.id + '" style="font-size:28px;line-height:1.2;">' + esc(next.name) + "</div>";
-      html += '<div class="hero-big-label">' + next.exercises.length + " bài · bấm để bắt đầu</div>";
+      html += '<div class="hero-big clickable" data-action="start-routine" data-id="' + next.id + '" style="font-size:22px;line-height:1.25;">' + esc(next.name) + "</div>";
+      html += '<div class="hero-big-label" style="margin-top:3px;">' + next.exercises.length + " bài · bấm để bắt đầu</div>";
     } else {
-      html += '<div class="hero-big" style="font-size:22px;">Chưa có lịch tập</div><div class="hero-big-label">Tạo routine ở tab Routine</div>';
+      html += '<div class="hero-big" style="font-size:18px;">Chưa có lịch tập</div><div class="hero-big-label" style="margin-top:3px;">Tạo routine ở tab Routine</div>';
     }
   } else {
-    html += '<div class="hero-big">' + Math.round(stats.totalVolume).toLocaleString("vi-VN") + '</div><div class="hero-big-label">KG tuần này · ' + stats.sessions + " buổi tập</div>";
+    html += '<div class="hero-big" style="font-size:32px;">' + Math.round(stats.totalVolume).toLocaleString("vi-VN") + '</div><div class="hero-big-label" style="margin-top:3px;">KG tuần này · ' + stats.sessions + " buổi tập</div>";
   }
   html += "</div>";
 
-  html += '<div class="info-card-row">';
-  if (next) {
-    html += '<div class="info-card clickable" data-action="start-routine" data-id="' + next.id + '">';
-    html += '<div class="info-card-label">Buổi tiếp theo</div><div class="info-card-value">' + esc(next.name) + "</div>";
-    html += '<div class="info-card-foot">' + next.exercises.length + " bài · bấm để bắt đầu</div></div>";
-  } else {
-    html += '<div class="info-card"><div class="info-card-label">Buổi tiếp theo</div><div class="info-card-value" style="color:var(--text-faint);">Chưa có lịch tập</div><div class="info-card-foot">Tạo ở tab Routine</div></div>';
-  }
+  html += '<div style="padding:12px 20px 0;">';
   if (last) {
-    html += '<div class="info-card clickable" data-action="view-workout" data-id="' + last.id + '">';
-    html += '<div class="info-card-label">Buổi gần nhất</div><div class="info-card-value">' + esc(last.name) + "</div>";
-    html += '<div class="info-card-foot">' + fmtDate(last.date) + " · " + countDoneSets(last) + " set</div></div>";
+    html += '<div class="info-card clickable" data-action="view-workout" data-id="' + last.id + '" style="padding:11px 14px;display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div><div class="info-card-label" style="margin-bottom:3px;">Buổi gần nhất</div><div class="info-card-value" style="font-size:14.5px;">' + esc(last.name) + "</div></div>";
+    html += '<div style="text-align:right;font-size:11.5px;color:var(--text-faint);flex:none;padding-left:10px;">' + fmtDate(last.date) + "<br>" + countDoneSets(last) + " set</div></div>";
   } else {
-    html += '<div class="info-card"><div class="info-card-label">Buổi gần nhất</div><div class="info-card-value" style="color:var(--text-faint);">Chưa có dữ liệu</div><div class="info-card-foot">Bắt đầu buổi đầu tiên</div></div>';
+    html += '<div class="info-card" style="padding:11px 14px;display:flex;align-items:center;justify-content:space-between;"><div><div class="info-card-label" style="margin-bottom:3px;">Buổi gần nhất</div><div class="info-card-value" style="font-size:14.5px;color:var(--text-faint);">Chưa có dữ liệu</div></div><div style="font-size:11.5px;color:var(--text-faint);flex:none;padding-left:10px;">Bắt đầu buổi đầu tiên</div></div>';
   }
   html += "</div>";
 
-  html += '<div style="padding:20px 20px 100px;"><div class="section-label">Routine của bạn</div>';
+  html += '<div style="padding:14px 20px 100px;"><div class="section-label">Routine của bạn</div>';
   if (state.routines.length === 0) {
     html += '<div style="font-size:13px;color:var(--text-faint);padding:8px 2px;">Chưa có routine nào. Tạo ở tab "Routine" để bắt đầu nhanh hơn.</div>';
   }
@@ -752,11 +747,9 @@ function renderSetCard(se, exIdx, opts) {
     } else {
       html += '<input class="set-input inp-value ' + (st.done ? "done" : "") + '" inputmode="decimal" value="' + esc(String(st.value || "")) + '" placeholder="0" />';
     }
-    html += '<button type="button" class="set-check ' + (st.done ? "done" : "") + '" data-action="toggle-done" data-ex="' + exIdx + '" data-set="' + setIdx + '">✓</button></div>';
+    html += '<button type="button" class="set-del" data-action="remove-set" data-ex="' + exIdx + '" data-set="' + setIdx + '" aria-label="Xoá set">✕</button></div>';
   });
-  html += '<div style="display:flex;gap:8px;margin-top:8px;"><button type="button" class="link-btn" data-action="add-set" data-ex="' + exIdx + '">+ Thêm set</button>';
-  if (se.sets.length > 0) html += '<button type="button" class="link-btn faint" data-action="remove-set" data-ex="' + exIdx + '" data-set="' + (se.sets.length - 1) + '">Bỏ set cuối</button>';
-  html += "</div></div>";
+  html += '<div style="display:flex;gap:8px;margin-top:8px;"><button type="button" class="link-btn" data-action="add-set" data-ex="' + exIdx + '">+ Thêm set</button></div></div>';
   return html;
 }
 
@@ -815,6 +808,11 @@ function renderPicker() {
 }
 
 /* ============ MUTATIONS ============ */
+function isSetComplete(mode, st) {
+  if (mode === "cardio") return !!(st.duration || st.distance || st.calories);
+  if (mode === "custom") return !!st.value;
+  return !!(st.weight && st.reps);
+}
 function syncActiveInputsToState() {
   const exs = getEditableExercisesRef();
   if (!exs) return;
@@ -838,11 +836,48 @@ function syncActiveInputsToState() {
       const v = row.querySelector(".inp-value");
       if (v) st.value = v.value;
     }
+    st.done = isSetComplete(mode, st);
   });
   document.querySelectorAll(".custom-unit-input").forEach((inp) => {
     const ex = exs[+inp.dataset.ex];
     if (ex) ex.customUnit = inp.value;
   });
+}
+function updateRowDOM(exIdx, setIdx, mode, st) {
+  const row = document.querySelector('.set-row[data-ex="' + exIdx + '"][data-set="' + setIdx + '"]');
+  if (!row) return;
+  if (mode === "cardio") {
+    const d = row.querySelector(".inp-duration"), ds = row.querySelector(".inp-distance"), c = row.querySelector(".inp-calories");
+    if (d) d.value = st.duration || "";
+    if (ds) ds.value = st.distance || "";
+    if (c) c.value = st.calories || "";
+  } else if (mode === "custom") {
+    const v = row.querySelector(".inp-value");
+    if (v) v.value = st.value || "";
+  } else {
+    const w = row.querySelector(".inp-weight"), r = row.querySelector(".inp-reps");
+    if (w) w.value = st.weight || "";
+    if (r) r.value = st.reps || "";
+  }
+  row.querySelectorAll(".set-input").forEach((inp) => inp.classList.toggle("done", !!st.done));
+}
+function propagateFirstRowToBlanks(exIdx) {
+  const exs = getEditableExercisesRef();
+  if (!exs || !exs[exIdx]) return;
+  const ex = exs[exIdx];
+  if (ex.sets.length < 2) return;
+  const mode = ex.mode || "strength";
+  const first = ex.sets[0];
+  for (let i = 1; i < ex.sets.length; i++) {
+    const st = ex.sets[i];
+    if (st.auto === false) continue;
+    if (mode === "cardio") { st.duration = first.duration; st.distance = first.distance; st.calories = first.calories; }
+    else if (mode === "custom") { st.value = first.value; }
+    else { st.weight = first.weight; st.reps = first.reps; }
+    st.auto = true;
+    st.done = isSetComplete(mode, st);
+    updateRowDOM(exIdx, i, mode, st);
+  }
 }
 function pickExercise(id, name) {
   const mode = defaultModeForExercise(id);
@@ -870,13 +905,15 @@ function createExerciseFromPicker() {
   pickExercise(ex.id, ex.name);
 }
 function startEmpty() {
-  state.activeSession = { id: uid("w"), name: "Buổi tập trống", date: todayStr(), startedAt: Date.now(), exercises: [] };
+  const w = { id: uid("w"), name: "Buổi tập trống", date: todayStr(), startedAt: Date.now(), durationSec: 0, exercises: [] };
+  state.workouts.push(w);
+  state.activeSession = w;
 }
 function startFromRoutine(id) {
   const r = state.routines.find((x) => x.id === id);
   if (!r) return;
-  state.activeSession = {
-    id: uid("w"), name: r.name, date: todayStr(), startedAt: Date.now(),
+  const w = {
+    id: uid("w"), name: r.name, date: todayStr(), startedAt: Date.now(), durationSec: 0,
     exercises: r.exercises.map((e) => {
       const mode = defaultModeForExercise(e.exerciseId);
       return {
@@ -885,16 +922,16 @@ function startFromRoutine(id) {
       };
     }),
   };
+  state.workouts.push(w);
+  state.activeSession = w;
 }
 function finishWorkout() {
   const s = state.activeSession;
-  const cleaned = {
-    ...s,
-    durationSec: Math.round((Date.now() - s.startedAt) / 1000),
-    exercises: s.exercises.map((e) => ({ ...e, origin: e.origin || "routine", sets: e.sets.filter((x) => x.done) })).filter((e) => e.sets.length > 0),
-  };
-  if (cleaned.exercises.length === 0) { state.activeSession = null; return; }
-  state.workouts.push(cleaned);
+  s.durationSec = Math.round((Date.now() - s.startedAt) / 1000);
+  s.exercises = s.exercises.map((e) => ({ ...e, origin: e.origin || "routine", sets: e.sets.filter((x) => x.done) })).filter((e) => e.sets.length > 0);
+  if (s.exercises.length === 0) {
+    state.workouts = state.workouts.filter((w) => w.id !== s.id);
+  }
   state.activeSession = null;
   state.tab = "history";
 }
@@ -947,20 +984,17 @@ function handleAction(action, el) {
     }
     case "start-empty": startEmpty(); break;
     case "start-routine": startFromRoutine(el.dataset.id); break;
-    case "cancel-workout": state.activeSession = null; break;
+    case "cancel-workout": {
+      if (state.activeSession) state.workouts = state.workouts.filter((w) => w.id !== state.activeSession.id);
+      state.activeSession = null;
+      break;
+    }
     case "finish-workout": finishWorkout(); break;
     case "open-picker": state.picker = { context: el.dataset.context, newGroup: "Tuỳ chỉnh" }; break;
     case "close-picker": state.picker = null; break;
     case "picker-new-group": state.picker.newGroup = el.dataset.group; break;
     case "picker-pick": pickExercise(el.dataset.id, el.dataset.name); break;
     case "picker-create": createExerciseFromPicker(); break;
-    case "toggle-done": {
-      const exs = getEditableExercisesRef();
-      const st = exs[+el.dataset.ex].sets[+el.dataset.set];
-      st.done = !st.done;
-      if (st.done && !state.activeSession && state.viewingWorkoutId) closeWorkoutDetail();
-      break;
-    }
     case "add-set": {
       const exs = getEditableExercisesRef();
       const ex = exs[+el.dataset.ex];
@@ -969,6 +1003,7 @@ function handleAction(action, el) {
       const last = sets[sets.length - 1];
       const fresh = emptySetForMode(mode);
       if (last) { Object.keys(fresh).forEach((k) => { if (k !== "done" && last[k] !== undefined) fresh[k] = last[k]; }); }
+      fresh.auto = true;
       sets.push(fresh);
       break;
     }
@@ -1080,6 +1115,44 @@ function renderAndPersist() {
 }
 
 /* ============ EVENTS ============ */
+function updateFinishButtonState() {
+  if (!state.activeSession) return;
+  const btn = document.querySelector('[data-action="finish-workout"]');
+  if (!btn) return;
+  const canFinish = state.activeSession.exercises.length > 0 && state.activeSession.exercises.some((e) => e.sets.some((x) => x.done));
+  if (canFinish) btn.removeAttribute("disabled");
+  else btn.setAttribute("disabled", "");
+}
+document.getElementById("app").addEventListener("change", (e) => {
+  const row = e.target.closest(".set-row");
+  if (!row) return;
+  const exIdx = +row.dataset.ex, setIdx = +row.dataset.set;
+  const exs = getEditableExercisesRef();
+  if (!exs || !exs[exIdx]) return;
+  const ex = exs[exIdx];
+  const st = ex.sets[setIdx];
+  if (!st) return;
+  const mode = ex.mode || "strength";
+  if (e.target.classList.contains("inp-weight")) st.weight = e.target.value;
+  else if (e.target.classList.contains("inp-reps")) st.reps = e.target.value;
+  else if (e.target.classList.contains("inp-duration")) st.duration = e.target.value;
+  else if (e.target.classList.contains("inp-distance")) st.distance = e.target.value;
+  else if (e.target.classList.contains("inp-calories")) st.calories = e.target.value;
+  else if (e.target.classList.contains("inp-value")) st.value = e.target.value;
+  else return;
+  if (setIdx !== 0) st.auto = false;
+  const wasDone = st.done;
+  st.done = isSetComplete(mode, st);
+  row.querySelectorAll(".set-input").forEach((inp) => inp.classList.toggle("done", !!st.done));
+  if (setIdx === 0) propagateFirstRowToBlanks(exIdx);
+  updateFinishButtonState();
+  scheduleSave();
+  if (!wasDone && st.done && !state.activeSession && state.viewingWorkoutId) {
+    closeWorkoutDetail();
+    renderAndPersist();
+  }
+});
+
 document.getElementById("app").addEventListener("click", (e) => {
   if (e.target.id === "picker-overlay") {
     state.picker = null;
@@ -1099,10 +1172,17 @@ document.getElementById("app").addEventListener("click", (e) => {
   renderAndPersist();
 });
 
+const AUTO_FINISH_MS = 2 * 60 * 60 * 1000; // 2 giờ
 setInterval(() => {
   if (state.activeSession) {
+    const elapsedMs = Date.now() - state.activeSession.startedAt;
     const el = document.getElementById("timer-display");
-    if (el) el.textContent = formatElapsed(Date.now() - state.activeSession.startedAt);
+    if (el) el.textContent = formatElapsed(elapsedMs);
+    if (elapsedMs >= AUTO_FINISH_MS) {
+      syncActiveInputsToState();
+      finishWorkout();
+      renderAndPersist();
+    }
   }
 }, 1000);
 
