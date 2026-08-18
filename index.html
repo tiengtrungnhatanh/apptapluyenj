@@ -264,6 +264,8 @@ let state = {
   viewingWorkoutId: null,
   picker: null,
   editingRoutine: null,
+  routineEditExpandedIndex: null,
+  setCardExpandedIndex: null,
   progressSelectedId: null,
   heroMetric: "next",
   theme: "light",
@@ -305,6 +307,36 @@ function summarizeExercise(e) {
     return (s.value || "—") + (e.customUnit ? " " + e.customUnit : "");
   });
   return esc(e.name) + (items.length ? ": " + items.map((i) => esc(i)).join(", ") : "");
+}
+function exerciseSetChips(e) {
+  const mode = e.mode || "strength";
+  return (e.sets || []).filter((s) => s.done).map((s) => {
+    if (mode === "strength") return { kg: (s.weight || "0") + "kg", reps: (s.reps || "0") + " reps" };
+    if (mode === "cardio") {
+      const parts = [];
+      if (s.duration) parts.push(s.duration + " phút");
+      if (s.distance) parts.push(s.distance + " km");
+      if (s.calories) parts.push(s.calories + " kcal");
+      return { kg: parts[0] || "—", reps: parts.slice(1).join(" · ") || "" };
+    }
+    return { kg: (s.value || "—") + (e.customUnit ? " " + e.customUnit : ""), reps: "" };
+  });
+}
+function renderWorkoutSummaryBlock(w) {
+  let html = '<div class="pastel-card pastel-blue" style="margin-top:10px;padding:12px 14px;">';
+  w.exercises.forEach((e, i) => {
+    const chips = exerciseSetChips(e);
+    if (chips.length === 0) return;
+    html += '<div style="' + (i > 0 ? "margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.25);" : "") + '">';
+    html += '<div style="font-size:13px;font-weight:800;margin-bottom:6px;">' + esc(e.name) + "</div>";
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    chips.forEach((c) => {
+      html += '<span style="background:var(--surface);color:var(--accent-deep);border:1px solid var(--accent-dim);border-radius:10px;padding:5px 9px;font-size:12px;font-weight:700;">' + esc(c.kg) + (c.reps ? '<span style="font-weight:500;opacity:.8;"> · ' + esc(c.reps) + "</span>" : "") + "</span>";
+    });
+    html += "</div></div>";
+  });
+  html += "</div>";
+  return html;
 }
 function workoutVolume(w) {
   return w.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).reduce((b, s) => b + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0), 0);
@@ -562,7 +594,7 @@ function renderHistoryTab() {
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
     html += '<div><div style="font-weight:700;font-size:14.5px;">' + esc(w.name) + '</div><div style="font-size:12px;color:var(--text-dim);margin-top:2px;">' + fmtDate(w.date) + " · " + w.exercises.length + " bài</div></div>";
     html += '<button type="button" class="icon-btn danger" data-action="delete-workout" data-id="' + w.id + '">🗑</button></div>';
-    html += '<div class="pastel-card pastel-blue" style="margin-top:10px;padding:12px 14px;"><div style="font-size:14px;font-weight:800;line-height:1.6;">' + w.exercises.map(summarizeExercise).join("<br>") + "</div></div>";
+    html += renderWorkoutSummaryBlock(w);
     html += "</div></div>";
   });
   html += "</div></div></div>";
@@ -642,7 +674,7 @@ function renderRoutinesTab() {
     html += '<button type="button" class="icon-btn" data-action="routine-move-down" data-id="' + r.id + '" ' + (i === state.routines.length - 1 ? "disabled" : "") + ' style="opacity:' + (i === state.routines.length - 1 ? "0.3" : "1") + ';">↓</button>';
     html += '<button type="button" class="icon-btn" data-action="edit-routine" data-id="' + r.id + '">✎</button>';
     html += '<button type="button" class="icon-btn danger" data-action="delete-routine" data-id="' + r.id + '">🗑</button></div></div>';
-    html += '<div style="font-size:12px;font-weight:500;color:var(--text-dim);margin-top:6px;">' + r.exercises.map((e) => esc(e.name) + " " + e.targetSets + "×" + esc(e.repRange || "")).join(" · ") + "</div></div>";
+    html += '<div style="font-size:12px;font-weight:500;color:var(--text-dim);margin-top:6px;">' + r.exercises.map((e) => esc(e.name) + " " + e.targetSets + "×" + esc(e.repRange || "") + (e.targetWeight ? " @" + esc(e.targetWeight) + "kg" : "")).join(" · ") + "</div></div>";
   });
   html += "</div></div></div>";
   html += renderBottomNav();
@@ -651,22 +683,51 @@ function renderRoutinesTab() {
 function renderRoutineEditor() {
   const r = state.editingRoutine;
   let html = '<div class="scroll" id="tab-scroll"><div style="padding:18px 20px 8px;display:flex;align-items:center;justify-content:space-between;">';
-  html += '<button data-action="cancel-routine-edit" style="background:none;border:none;color:var(--text-dim);font-size:14px;display:flex;align-items:center;gap:4px;">← Huỷ</button>';
-  html += '<button data-action="save-routine" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:14px;display:flex;align-items:center;gap:4px;">💾 Lưu</button></div>';
+  html += '<button type="button" data-action="close-routine-editor" style="background:none;border:none;color:var(--text-dim);font-size:14px;display:flex;align-items:center;gap:4px;">← Xong</button>';
+  html += '<span style="font-size:11.5px;color:var(--text-faint);">Tự động lưu</span></div>';
   html += '<div style="padding:8px 20px;"><input id="routine-name-input" class="input" style="font-size:18px;font-weight:700;padding:10px 12px;" value="' + esc(r.name) + '" /></div>';
   html += '<div style="padding:12px 20px 100px;">';
+  const expanded = state.routineEditExpandedIndex;
   r.exercises.forEach((e, i) => {
-    html += '<div class="card" style="margin-bottom:8px;padding:12px;">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div><div style="font-size:14px;font-weight:600;">' + esc(e.name) + '</div>';
-    if (e.repRange) html += '<div style="font-size:11px;color:var(--text-faint);margin-top:1px;">' + esc(e.repRange) + " reps</div>";
+    html += '<div class="card" style="margin-bottom:10px;padding:12px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+    html += '<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">';
+    html += '<div style="display:flex;flex-direction:column;gap:1px;flex:none;">';
+    html += '<button type="button" class="mini-btn" data-action="routine-ex-move-up" data-i="' + i + '" ' + (i === 0 ? "disabled" : "") + ' style="opacity:' + (i === 0 ? "0.3" : "1") + ';">↑</button>';
+    html += '<button type="button" class="mini-btn" data-action="routine-ex-move-down" data-i="' + i + '" ' + (i === r.exercises.length - 1 ? "disabled" : "") + ' style="opacity:' + (i === r.exercises.length - 1 ? "0.3" : "1") + ';">↓</button>';
     html += "</div>";
-    html += '<div style="display:flex;align-items:center;gap:10px;"><div style="display:flex;align-items:center;gap:6px;">';
-    html += '<button type="button" class="mini-btn" data-action="routine-set-minus" data-i="' + i + '">−</button>';
-    html += '<span class="mono" style="width:14px;text-align:center;font-size:13px;">' + e.targetSets + '</span>';
-    html += '<button type="button" class="mini-btn" data-action="routine-set-plus" data-i="' + i + '">+</button></div>';
-    html += '<button type="button" class="icon-btn danger" data-action="routine-remove-exercise" data-i="' + i + '" style="font-size:14px;">🗑</button></div></div>';
-    html += '<textarea id="routine-note-input-' + i + '" class="input" rows="2" placeholder="Ghi số hiệp/rep hoặc mô tả bài tập... (VD: 4x10, chú ý giữ lưng thẳng)" style="margin-top:10px;font-size:13px;resize:none;">' + esc(e.note || "") + "</textarea>";
+    if (expanded === i) {
+      html += '<input id="routine-ex-name-' + i + '" class="input" style="font-size:14px;font-weight:600;padding:8px 10px;flex:1;min-width:0;" value="' + esc(e.name) + '" />';
+    } else {
+      html += '<div style="min-width:0;"><div style="font-size:14.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(e.name) + "</div>";
+      const bits = [];
+      if (e.targetWeight) bits.push(esc(e.targetWeight) + "kg");
+      if (e.repRange) bits.push(esc(e.repRange) + " reps");
+      bits.push(e.targetSets + " set");
+      html += '<div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">' + bits.join(" · ") + "</div>";
+      if (e.note) html += '<div style="font-size:11px;color:var(--text-faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📝 ' + esc(e.note) + "</div>";
+      html += "</div>";
+    }
+    html += "</div>";
+    html += '<div style="display:flex;align-items:center;gap:4px;flex:none;">';
+    html += '<button type="button" class="icon-btn" data-action="routine-toggle-edit" data-i="' + i + '" title="Sửa">' + (expanded === i ? "✓" : "✎") + "</button>";
+    html += '<button type="button" class="icon-btn danger" data-action="routine-remove-exercise" data-i="' + i + '">🗑</button>';
+    html += "</div></div>";
+
+    if (expanded === i) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">';
+      html += '<div><div class="info-card-label" style="margin-bottom:4px;">Mục tiêu Kg</div><input id="routine-ex-kg-' + i + '" class="input" inputmode="decimal" placeholder="VD: 40" value="' + esc(e.targetWeight || "") + '" /></div>';
+      html += '<div><div class="info-card-label" style="margin-bottom:4px;">Mục tiêu Reps</div><input id="routine-ex-reps-' + i + '" class="input" placeholder="VD: 6-10" value="' + esc(e.repRange || "") + '" /></div>';
+      html += "</div>";
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;">';
+      html += '<div class="info-card-label" style="margin-bottom:0;">Số set</div>';
+      html += '<button type="button" class="mini-btn" data-action="routine-set-minus" data-i="' + i + '">−</button>';
+      html += '<span class="mono" style="width:16px;text-align:center;font-size:13px;">' + e.targetSets + '</span>';
+      html += '<button type="button" class="mini-btn" data-action="routine-set-plus" data-i="' + i + '">+</button>';
+      html += "</div>";
+      html += '<div style="margin-top:10px;"><div class="info-card-label" style="margin-bottom:4px;">Mô tả</div>';
+      html += '<textarea id="routine-note-input-' + i + '" class="input" rows="2" placeholder="Ghi chú thêm cho bài này..." style="font-size:13px;resize:none;">' + esc(e.note || "") + "</textarea></div>";
+    }
     html += "</div>";
   });
   html += '<button type="button" class="dashed-btn" data-action="open-picker" data-context="routine">+ Thêm bài tập</button>';
@@ -697,18 +758,48 @@ function renderSetCard(se, exIdx, opts) {
   opts = opts || {};
   const mode = se.mode || "strength";
   const doneCount = se.sets.filter((x) => x.done).length;
+  const allExs = getEditableExercisesRef() || [];
+  const total = allExs.length;
+  const expanded = state.setCardExpandedIndex === exIdx;
   let html = '<div class="card" style="margin-bottom:12px;">';
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-  html += '<div><div style="font-size:15px;font-weight:700;">' + esc(se.name) + "</div>";
-  if (se.repRange && mode === "strength") html += '<div style="font-size:11px;color:var(--text-faint);margin-top:1px;">Mục tiêu: <span class="mono">' + esc(se.repRange) + " reps/set</span></div>";
-  if (se.note) html += '<div style="font-size:12px;color:var(--accent-deep);background:var(--accent-soft);border-radius:8px;padding:4px 8px;margin-top:5px;display:inline-block;">📝 ' + esc(se.note) + "</div>";
-  html += '</div><div style="display:flex;align-items:center;gap:8px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">';
+  html += '<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">';
+  html += '<div style="display:flex;flex-direction:column;gap:1px;flex:none;">';
+  html += '<button type="button" class="mini-btn" data-action="ex-move-up" data-ex="' + exIdx + '" ' + (exIdx === 0 ? "disabled" : "") + ' style="opacity:' + (exIdx === 0 ? "0.3" : "1") + ';">↑</button>';
+  html += '<button type="button" class="mini-btn" data-action="ex-move-down" data-ex="' + exIdx + '" ' + (exIdx === total - 1 ? "disabled" : "") + ' style="opacity:' + (exIdx === total - 1 ? "0.3" : "1") + ';">↓</button>';
+  html += "</div>";
+  if (expanded) {
+    html += '<input id="ex-name-input-' + exIdx + '" class="input ex-edit-field" style="font-size:14px;font-weight:600;padding:8px 10px;flex:1;min-width:0;" value="' + esc(se.name) + '" />';
+  } else {
+    html += '<div style="min-width:0;">';
+    html += '<div style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(se.name) + "</div>";
+    if ((se.repRange || se.targetWeight) && mode === "strength") {
+      const bits = [];
+      if (se.targetWeight) bits.push(esc(se.targetWeight) + "kg");
+      if (se.repRange) bits.push(esc(se.repRange) + " reps");
+      html += '<div style="font-size:11px;color:var(--text-faint);margin-top:1px;">Mục tiêu: <span class="mono">' + bits.join(" × ") + "/set</span></div>";
+    }
+    if (se.note) html += '<div style="font-size:11.5px;color:var(--accent-deep);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📝 ' + esc(se.note) + "</div>";
+    html += "</div>";
+  }
+  html += "</div>";
+  html += '<div style="display:flex;align-items:center;gap:8px;flex:none;">';
   if (mode === "strength") {
     html += '<div class="plate-stack">' + se.sets.map((_, i) => '<div class="plate ' + (i < doneCount ? "filled" : "") + '"></div>').join("") + "</div>";
   } else {
     html += '<span style="font-size:11px;color:var(--text-faint);">' + doneCount + "/" + se.sets.length + "</span>";
   }
-  html += '<button type="button" class="icon-btn danger" data-action="remove-exercise" data-ex="' + exIdx + '" style="font-size:14px;">🗑</button></div></div>';
+  html += '<button type="button" class="icon-btn" data-action="ex-toggle-edit" data-ex="' + exIdx + '" title="Sửa">' + (expanded ? "✓" : "✎") + "</button>";
+  html += '<button type="button" class="icon-btn danger" data-action="remove-exercise" data-ex="' + exIdx + '">🗑</button></div></div>';
+
+  if (expanded) {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+    html += '<div><div class="info-card-label" style="margin-bottom:4px;">Mục tiêu Kg</div><input id="ex-kg-input-' + exIdx + '" class="input ex-edit-field" inputmode="decimal" placeholder="VD: 40" value="' + esc(se.targetWeight || "") + '" /></div>';
+    html += '<div><div class="info-card-label" style="margin-bottom:4px;">Mục tiêu Reps</div><input id="ex-reps-input-' + exIdx + '" class="input ex-edit-field" placeholder="VD: 6-10" value="' + esc(se.repRange || "") + '" /></div>';
+    html += "</div>";
+    html += '<div style="margin-bottom:10px;"><div class="info-card-label" style="margin-bottom:4px;">Mô tả</div>';
+    html += '<textarea id="ex-note-input-' + exIdx + '" class="input ex-edit-field" rows="2" placeholder="Ghi chú thêm cho bài này..." style="font-size:13px;resize:none;">' + esc(se.note || "") + "</textarea></div>";
+  }
 
   html += '<div class="mode-toggle">';
   html += '<button type="button" class="mode-btn ' + (mode === "strength" ? "active" : "") + '" data-action="set-mode" data-ex="' + exIdx + '" data-mode="strength">Tạ</button>';
@@ -842,6 +933,16 @@ function syncActiveInputsToState() {
     const ex = exs[+inp.dataset.ex];
     if (ex) ex.customUnit = inp.value;
   });
+  exs.forEach((ex, i) => {
+    const nameEl = document.getElementById("ex-name-input-" + i);
+    if (nameEl) ex.name = nameEl.value;
+    const kgEl = document.getElementById("ex-kg-input-" + i);
+    if (kgEl) ex.targetWeight = kgEl.value;
+    const repsEl = document.getElementById("ex-reps-input-" + i);
+    if (repsEl) ex.repRange = repsEl.value;
+    const noteEl = document.getElementById("ex-note-input-" + i);
+    if (noteEl) ex.note = noteEl.value;
+  });
 }
 function updateRowDOM(exIdx, setIdx, mode, st) {
   const row = document.querySelector('.set-row[data-ex="' + exIdx + '"][data-set="' + setIdx + '"]');
@@ -917,7 +1018,7 @@ function startFromRoutine(id) {
     exercises: r.exercises.map((e) => {
       const mode = defaultModeForExercise(e.exerciseId);
       return {
-        exerciseId: e.exerciseId, name: e.name, repRange: e.repRange || null, note: e.note || null, mode: mode,
+        exerciseId: e.exerciseId, name: e.name, repRange: e.repRange || null, targetWeight: e.targetWeight || null, note: e.note || null, mode: mode,
         sets: Array.from({ length: e.targetSets || 3 }).map(() => emptySetForMode(mode)),
       };
     }),
@@ -947,26 +1048,29 @@ function closeWorkoutDetail() {
   }
   state.viewingWorkoutId = null;
 }
-function syncRoutineNotesToState() {
+function syncRoutineEditorToState() {
   if (!state.editingRoutine) return;
+  const nameEl = document.getElementById("routine-name-input");
+  if (nameEl) state.editingRoutine.name = nameEl.value;
   state.editingRoutine.exercises.forEach((e, i) => {
+    const nEl = document.getElementById("routine-ex-name-" + i);
+    if (nEl) e.name = nEl.value;
+    const kgEl = document.getElementById("routine-ex-kg-" + i);
+    if (kgEl) e.targetWeight = kgEl.value;
+    const repsEl = document.getElementById("routine-ex-reps-" + i);
+    if (repsEl) e.repRange = repsEl.value;
     const noteEl = document.getElementById("routine-note-input-" + i);
     if (noteEl) e.note = noteEl.value;
   });
 }
-function saveRoutine() {
-  const nameEl = document.getElementById("routine-name-input");
-  const name = nameEl ? nameEl.value.trim() : state.editingRoutine.name;
-  if (!name || state.editingRoutine.exercises.length === 0) return;
-  state.editingRoutine.name = name;
-  state.editingRoutine.exercises.forEach((e, i) => {
-    const noteEl = document.getElementById("routine-note-input-" + i);
-    if (noteEl) e.note = noteEl.value.trim() || null;
-  });
-  const exists = state.routines.some((r) => r.id === state.editingRoutine.id);
-  if (exists) state.routines = state.routines.map((r) => (r.id === state.editingRoutine.id ? state.editingRoutine : r));
-  else state.routines.push(state.editingRoutine);
+function closeRoutineEditor() {
+  const r = state.editingRoutine;
+  if (r) {
+    if (!r.name || !r.name.trim()) r.name = "Routine mới";
+    if (r.exercises.length === 0) state.routines = state.routines.filter((x) => x.id !== r.id);
+  }
   state.editingRoutine = null;
+  state.routineEditExpandedIndex = null;
 }
 
 /* ============ ACTION DISPATCH ============ */
@@ -1023,13 +1127,55 @@ function handleAction(action, el) {
       if (ex.sets.length === 0) exs.splice(exIdx, 1);
       break;
     }
-    case "remove-exercise": getEditableExercisesRef().splice(+el.dataset.ex, 1); break;
+    case "remove-exercise": {
+      const exs0 = getEditableExercisesRef();
+      const i0 = +el.dataset.ex;
+      exs0.splice(i0, 1);
+      if (state.setCardExpandedIndex === i0) state.setCardExpandedIndex = null;
+      else if (state.setCardExpandedIndex > i0) state.setCardExpandedIndex--;
+      break;
+    }
+    case "ex-toggle-edit": {
+      const i = +el.dataset.ex;
+      state.setCardExpandedIndex = state.setCardExpandedIndex === i ? null : i;
+      break;
+    }
+    case "ex-move-up": {
+      const i = +el.dataset.ex;
+      const exs = getEditableExercisesRef();
+      if (i > 0) {
+        const tmp = exs[i - 1]; exs[i - 1] = exs[i]; exs[i] = tmp;
+        if (state.setCardExpandedIndex === i) state.setCardExpandedIndex = i - 1;
+        else if (state.setCardExpandedIndex === i - 1) state.setCardExpandedIndex = i;
+      }
+      break;
+    }
+    case "ex-move-down": {
+      const i = +el.dataset.ex;
+      const exs = getEditableExercisesRef();
+      if (i < exs.length - 1) {
+        const tmp = exs[i + 1]; exs[i + 1] = exs[i]; exs[i] = tmp;
+        if (state.setCardExpandedIndex === i) state.setCardExpandedIndex = i + 1;
+        else if (state.setCardExpandedIndex === i + 1) state.setCardExpandedIndex = i;
+      }
+      break;
+    }
     case "view-workout": state.viewingWorkoutId = el.dataset.id; break;
     case "close-detail": closeWorkoutDetail(); break;
     case "delete-workout": state.workouts = state.workouts.filter((w) => w.id !== el.dataset.id); break;
     case "select-progress": state.progressSelectedId = el.dataset.id; break;
-    case "new-routine": state.editingRoutine = { id: uid("r"), name: "Routine mới", exercises: [] }; break;
-    case "edit-routine": state.editingRoutine = JSON.parse(JSON.stringify(state.routines.find((r) => r.id === el.dataset.id))); break;
+    case "new-routine": {
+      const nr = { id: uid("r"), name: "Routine mới", exercises: [] };
+      state.routines.push(nr);
+      state.editingRoutine = nr;
+      state.routineEditExpandedIndex = null;
+      break;
+    }
+    case "edit-routine": {
+      state.editingRoutine = state.routines.find((r) => r.id === el.dataset.id) || null;
+      state.routineEditExpandedIndex = null;
+      break;
+    }
     case "delete-routine": state.routines = state.routines.filter((r) => r.id !== el.dataset.id); break;
     case "routine-move-up": {
       const i = state.routines.findIndex((r) => r.id === el.dataset.id);
@@ -1041,9 +1187,38 @@ function handleAction(action, el) {
       if (i !== -1 && i < state.routines.length - 1) { const tmp = state.routines[i + 1]; state.routines[i + 1] = state.routines[i]; state.routines[i] = tmp; }
       break;
     }
-    case "cancel-routine-edit": state.editingRoutine = null; break;
-    case "save-routine": saveRoutine(); break;
-    case "routine-remove-exercise": state.editingRoutine.exercises.splice(+el.dataset.i, 1); break;
+    case "close-routine-editor": closeRoutineEditor(); break;
+    case "routine-toggle-edit": {
+      const i = +el.dataset.i;
+      state.routineEditExpandedIndex = state.routineEditExpandedIndex === i ? null : i;
+      break;
+    }
+    case "routine-ex-move-up": {
+      const i = +el.dataset.i;
+      if (i > 0) {
+        const exs = state.editingRoutine.exercises;
+        const tmp = exs[i - 1]; exs[i - 1] = exs[i]; exs[i] = tmp;
+        if (state.routineEditExpandedIndex === i) state.routineEditExpandedIndex = i - 1;
+        else if (state.routineEditExpandedIndex === i - 1) state.routineEditExpandedIndex = i;
+      }
+      break;
+    }
+    case "routine-ex-move-down": {
+      const i = +el.dataset.i;
+      const exs = state.editingRoutine.exercises;
+      if (i < exs.length - 1) {
+        const tmp = exs[i + 1]; exs[i + 1] = exs[i]; exs[i] = tmp;
+        if (state.routineEditExpandedIndex === i) state.routineEditExpandedIndex = i + 1;
+        else if (state.routineEditExpandedIndex === i + 1) state.routineEditExpandedIndex = i;
+      }
+      break;
+    }
+    case "routine-remove-exercise": {
+      const i = +el.dataset.i;
+      state.editingRoutine.exercises.splice(i, 1);
+      if (state.routineEditExpandedIndex === i) state.routineEditExpandedIndex = null;
+      break;
+    }
     case "routine-set-plus": state.editingRoutine.exercises[+el.dataset.i].targetSets++; break;
     case "routine-set-minus": {
       const i = +el.dataset.i;
@@ -1124,6 +1299,16 @@ function updateFinishButtonState() {
   else btn.setAttribute("disabled", "");
 }
 document.getElementById("app").addEventListener("change", (e) => {
+  if (state.editingRoutine) {
+    syncRoutineEditorToState();
+    scheduleSave();
+    return;
+  }
+  if (e.target.classList.contains("ex-edit-field")) {
+    syncActiveInputsToState();
+    scheduleSave();
+    return;
+  }
   const row = e.target.closest(".set-row");
   if (!row) return;
   const exIdx = +row.dataset.ex, setIdx = +row.dataset.set;
@@ -1167,7 +1352,7 @@ document.getElementById("app").addEventListener("click", (e) => {
     return;
   }
   if (state.activeSession || state.viewingWorkoutId) syncActiveInputsToState();
-  if (state.editingRoutine) syncRoutineNotesToState();
+  if (state.editingRoutine) syncRoutineEditorToState();
   handleAction(el.dataset.action, el);
   renderAndPersist();
 });
