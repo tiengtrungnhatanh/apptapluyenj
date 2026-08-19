@@ -422,10 +422,40 @@ function getProgressPoints(exId) {
 }
 
 /* ============ STORAGE ============ */
+function hasArtifactStorage() {
+  return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function" && typeof window.storage.set === "function";
+}
+async function storageGetRaw(key) {
+  if (hasArtifactStorage()) {
+    try {
+      const res = await window.storage.get(key, false);
+      if (res && res.value) return res.value;
+    } catch (e) { /* fall through to localStorage */ }
+  }
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) return raw;
+  } catch (e) { /* localStorage unavailable (e.g. private mode) */ }
+  return null;
+}
+async function storageSetRaw(key, value) {
+  let ok = false;
+  if (hasArtifactStorage()) {
+    try {
+      await window.storage.set(key, value, false);
+      ok = true;
+    } catch (e) { /* fall through, still try localStorage below */ }
+  }
+  try {
+    localStorage.setItem(key, value);
+    ok = true;
+  } catch (e) { /* localStorage unavailable */ }
+  if (!ok) throw new Error("Không thể lưu vào bất kỳ nơi lưu trữ nào");
+}
 async function loadData() {
   try {
-    const res = await window.storage.get(STORAGE_KEY, false);
-    if (res && res.value) return JSON.parse(res.value);
+    const raw = await storageGetRaw(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
   } catch (e) { /* not found yet */ }
   return { exercises: DEFAULT_EXERCISES, routines: [], workouts: [], theme: "light" };
 }
@@ -444,7 +474,7 @@ async function flushSave(retriesLeft) {
   saveInFlight = true;
   const payload = JSON.stringify({ exercises: state.exercises, routines: state.routines, workouts: state.workouts, theme: state.theme });
   try {
-    await window.storage.set(STORAGE_KEY, payload, false);
+    await storageSetRaw(STORAGE_KEY, payload);
   } catch (e) {
     console.error("Lỗi lưu dữ liệu:", e);
     if (retriesLeft > 0) {
@@ -1375,8 +1405,7 @@ setInterval(() => {
 async function maybeSeedPlan() {
   let seeded = null;
   try {
-    const res = await window.storage.get(SEED_KEY, false);
-    seeded = res ? res.value : null;
+    seeded = await storageGetRaw(SEED_KEY);
   } catch (e) { seeded = null; }
   if (seeded) return;
 
@@ -1388,7 +1417,7 @@ async function maybeSeedPlan() {
   state.routines = [...toAdd, ...state.routines];
 
   await flushSave(2);
-  try { await window.storage.set(SEED_KEY, "1", false); } catch (e) { /* ignore */ }
+  try { await storageSetRaw(SEED_KEY, "1"); } catch (e) { /* ignore */ }
 }
 
 (async function init() {
