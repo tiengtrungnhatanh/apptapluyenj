@@ -115,6 +115,7 @@
   .day-num{font-size:14px;font-weight:600;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
   .day-item.today .day-num{background:rgba(255,255,255,0.3);font-weight:800;}
   .day-dot{width:4px;height:4px;border-radius:50%;background:#fff;margin-top:1px;}
+  .day-icon-img{width:22px;height:22px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.6);display:block;}
   .segmented{display:inline-flex;background:rgba(255,255,255,0.2);border-radius:20px;padding:3px;margin-bottom:18px;}
   .segmented-option{border:none;background:none;color:rgba(255,255,255,0.8);font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:16px;}
   .segmented-option.active{background:#fff;color:var(--pill-text);}
@@ -282,6 +283,7 @@ let state = {
   setCardExpandedIndex: null,
   progressSelectedId: null,
   heroMetric: "next",
+  dayIcons: {},
   theme: "light",
 };
 
@@ -404,6 +406,59 @@ function getWeekStats() {
     totalDurationSec: weekWorkouts.reduce((a, w) => a + (w.durationSec || 0), 0),
   };
 }
+function resizeImageFile(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          const scale = Math.min(1, maxSize / Math.max(w, h));
+          w = Math.max(1, Math.round(w * scale));
+          h = Math.max(1, Math.round(h * scale));
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error("Không đọc được ảnh (định dạng không hỗ trợ)"));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Không đọc được file"));
+    reader.readAsDataURL(file);
+  });
+}
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error("Không đọc được file"));
+    reader.readAsDataURL(file);
+  });
+}
+async function handleDayIconFile(e) {
+  const file = e.target.files && e.target.files[0];
+  const date = e.target.dataset.date;
+  e.target.value = "";
+  if (!file || !date) return;
+  let dataUrl;
+  try {
+    dataUrl = await resizeImageFile(file, 96);
+  } catch (err) {
+    try {
+      dataUrl = await readFileAsDataURL(file);
+    } catch (err2) {
+      console.error("Lỗi xử lý ảnh:", err2);
+      alert("Không đọc được ảnh này. Vui lòng thử một ảnh JPG/PNG khác nhé.");
+      return;
+    }
+  }
+  state.dayIcons[date] = dataUrl;
+  renderAndPersist();
+}
 function formatDuration(sec) {
   if (!sec) return "0m";
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
@@ -472,7 +527,7 @@ async function loadData() {
     const raw = await storageGetRaw(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) { /* not found yet */ }
-  return { exercises: DEFAULT_EXERCISES, routines: [], workouts: [], theme: "light" };
+  return { exercises: DEFAULT_EXERCISES, routines: [], workouts: [], theme: "light", dayIcons: {} };
 }
 function applyTheme() {
   document.documentElement.setAttribute("data-theme", state.theme === "dark" ? "dark" : "light");
@@ -487,7 +542,7 @@ function scheduleSave() {
 async function flushSave(retriesLeft) {
   if (saveInFlight) { saveQueuedAgain = true; return; }
   saveInFlight = true;
-  const payload = JSON.stringify({ exercises: state.exercises, routines: state.routines, workouts: state.workouts, theme: state.theme });
+  const payload = JSON.stringify({ exercises: state.exercises, routines: state.routines, workouts: state.workouts, theme: state.theme, dayIcons: state.dayIcons });
   try {
     await storageSetRaw(STORAGE_KEY, payload);
   } catch (e) {
@@ -577,10 +632,16 @@ function renderLogTab() {
   html += '<div class="header" style="padding:16px 20px 10px;"><div><div class="header-title" style="font-size:22px;">Nhật ký tập</div></div>' + renderThemeToggle() + "</div>";
 
   html += '<div class="hero-card" style="margin:0 20px;padding:14px 16px 14px;">';
-  html += '<div class="day-strip" style="margin-bottom:10px;">' + days.map((d) =>
-    '<div class="day-item ' + (d.isToday ? "today" : "") + '" style="width:26px;"><div class="day-weekday">' + d.weekday + '</div><div class="day-num" style="width:22px;height:22px;font-size:12.5px;">' + d.dayNum + "</div>" +
-    (d.hasWorkout ? '<div class="day-dot"></div>' : '<div style="height:4px;"></div>') + "</div>"
-  ).join("") + "</div>";
+  html += '<div class="day-strip" style="margin-bottom:10px;">' + days.map((d) => {
+    const icon = state.dayIcons[d.date];
+    const circle = icon
+      ? '<img src="' + icon + '" class="day-icon-img" />'
+      : '<div class="day-num" style="width:22px;height:22px;font-size:12.5px;">' + d.dayNum + "</div>";
+    return '<label class="day-item ' + (d.isToday ? "today" : "") + '" style="width:26px;cursor:pointer;">' +
+      '<input type="file" accept="image/*" class="day-icon-input-hidden" data-date="' + d.date + '" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;" />' +
+      '<div class="day-weekday">' + d.weekday + "</div>" + circle +
+      (d.hasWorkout ? '<div class="day-dot"></div>' : '<div style="height:4px;"></div>') + "</label>";
+  }).join("") + "</div>";
   html += '<div class="segmented" style="margin-bottom:10px;">';
   html += '<button type="button" class="segmented-option ' + (showNext ? "active" : "") + '" data-action="hero-metric" data-metric="next">Buổi tiếp theo</button>';
   html += '<button type="button" class="segmented-option ' + (!showNext ? "active" : "") + '" data-action="hero-metric" data-metric="progress">Tiến độ</button>';
@@ -642,7 +703,9 @@ function renderHistoryTab() {
     html += '<div class="day-card day-card-' + color + '" style="margin-bottom:10px;">';
     html += '<div class="clickable" data-action="data-toggle-day" data-date="' + date + '" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">';
     html += '<div><div style="font-weight:800;font-size:15px;">' + esc(fmtDateWeekday(date)) + '</div><div style="font-size:12px;font-weight:600;margin-top:2px;opacity:.8;">' + exCount + " bài · " + doneSetCount + " set hoàn thành</div></div>";
-    html += '<span style="font-size:18px;opacity:.7;">' + (isOpen ? "▾" : "▸") + "</span></div>";
+    html += '<div style="display:flex;align-items:center;gap:4px;">';
+    html += '<button type="button" class="icon-btn" data-action="delete-day" data-date="' + date + '" title="Xoá ngày này" style="color:inherit;">🗑</button>';
+    html += '<span style="font-size:18px;opacity:.7;">' + (isOpen ? "▾" : "▸") + "</span></div></div>";
     if (isOpen) {
       html += '<div style="padding:0 14px 14px;">';
       const w = getOrCreateDayWorkout(date);
@@ -909,7 +972,7 @@ function getEditableExercisesRef() {
 }
 function getAlreadyPicked() {
   if (!state.picker) return [];
-  if (state.picker.context === "active") return state.activeSession.exercises.map((e) => e.exerciseId);
+  if (state.picker.context === "active") return state.activeSession ? state.activeSession.exercises.map((e) => e.exerciseId) : [];
   if (state.picker.context === "routine") return state.editingRoutine.exercises.map((e) => e.exerciseId);
   if (state.picker.context === "history") { const w = getViewingWorkout(); return w ? w.exercises.map((e) => e.exerciseId) : []; }
   return [];
@@ -1132,9 +1195,10 @@ function handleAction(action, el) {
     case "cancel-workout": {
       if (state.activeSession) state.workouts = state.workouts.filter((w) => w.id !== state.activeSession.id);
       state.activeSession = null;
+      state.picker = null;
       break;
     }
-    case "finish-workout": finishWorkout(); break;
+    case "finish-workout": finishWorkout(); state.picker = null; break;
     case "open-picker": state.picker = { context: el.dataset.context, newGroup: "Tuỳ chỉnh" }; break;
     case "close-picker": state.picker = null; break;
     case "picker-new-group": state.picker.newGroup = el.dataset.group; break;
@@ -1214,6 +1278,14 @@ function handleAction(action, el) {
       break;
     }
     case "view-day": state.tab = "history"; state.dataExpandedDate = el.dataset.date; getOrCreateDayWorkout(el.dataset.date); break;
+    case "delete-day": {
+      const date = el.dataset.date;
+      if (confirm("Xoá toàn bộ dữ liệu ngày " + fmtDate(date) + "?")) {
+        state.workouts = state.workouts.filter((w) => w.date !== date);
+        if (state.dataExpandedDate === date) state.dataExpandedDate = null;
+      }
+      break;
+    }
     case "delete-workout": state.workouts = state.workouts.filter((w) => w.id !== el.dataset.id); break;
     case "select-progress": state.progressSelectedId = el.dataset.id; break;
     case "new-routine": {
@@ -1339,6 +1411,10 @@ function updateFinishButtonState() {
   else btn.setAttribute("disabled", "");
 }
 document.getElementById("app").addEventListener("change", (e) => {
+  if (e.target.classList.contains("day-icon-input-hidden")) {
+    handleDayIconFile(e);
+    return;
+  }
   if (state.editingRoutine) {
     syncRoutineEditorToState();
     scheduleSave();
@@ -1431,6 +1507,7 @@ async function maybeSeedPlan() {
   state.routines = d.routines || [];
   state.workouts = d.workouts || [];
   state.theme = d.theme === "dark" ? "dark" : "light";
+  state.dayIcons = d.dayIcons || {};
   applyTheme();
   await maybeSeedPlan();
   state.loaded = true;
